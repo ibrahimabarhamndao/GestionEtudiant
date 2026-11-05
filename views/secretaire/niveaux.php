@@ -51,7 +51,7 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
         
         <!-- Header Supérieur Dynamique -->
-   <?php include '../../includes/header.php'; ?>
+        <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
         <div class="flex-1 p-8 overflow-y-auto">
@@ -67,8 +67,8 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                         <button class="px-3 py-1 bg-red-50 text-red-600 font-semibold rounded">Tableau</button>
                         <button class="px-3 py-1 text-gray-500 hover:text-gray-800">Cartes</button>
                     </div>
-                    <button onclick="toggleDrawer(true)" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-1">
-                        <span>Ajouter un niveaux</span> <span class="font-bold">+</span>
+                    <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-1 shadow-sm">
+                        <span>Ajouter un niveau</span> <span class="font-bold">+</span>
                     </button>
                 </div>
             </div>
@@ -118,17 +118,22 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
         </div>
     </main>
 
-    <!-- DRAWER D'AJOUT -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
-    
-    <div id="drawer" class="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between">
-        <div>
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+    <!-- MODALE / POP-UP D'AJOUT DE NIVEAU -->
+    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <!-- Fond sombre semi-transparent -->
+        <div id="modal-backdrop" class="fixed inset-0 bg-black/50 opacity-0 transition-opacity duration-300" onclick="toggleModal(false)"></div>
+
+        <!-- Boîte Modale -->
+        <div id="modal-box" class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300">
+            
+            <!-- En-tête Pop-up -->
+            <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
                 <h3 class="font-bold text-lg text-gray-800">Ajouter un niveau</h3>
-                <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
             </div>
 
-            <form action="niveaux.php" method="POST" class="p-6 space-y-4">
+            <!-- Formulaire -->
+            <form action="niveaux.php" method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="ajouter">
                 
                 <div>
@@ -151,27 +156,40 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                     <input type="text" name="libelle" required placeholder="ex: Licence 1ère année" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
-                <div class="pt-4">
-                    <button type="submit" class="w-full bg-red-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition">
-                        Enregistrer le niveau
+                <!-- Actions du Formulaire -->
+                <div class="pt-4 flex justify-end space-x-3">
+                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
+                        Enregistrer
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Script de contrôle du Pop-up -->
     <script>
-        function toggleDrawer(open) {
-            const drawer = document.getElementById('drawer');
-            const overlay = document.getElementById('drawer-overlay');
+        function toggleModal(open) {
+            const container = document.getElementById('modal-container');
+            const backdrop = document.getElementById('modal-backdrop');
+            const box = document.getElementById('modal-box');
+
             if (open) {
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
-                drawer.classList.remove('translate-x-full');
+                container.classList.remove('hidden');
+                setTimeout(() => {
+                    backdrop.classList.remove('opacity-0');
+                    box.classList.remove('opacity-0', 'scale-95');
+                    box.classList.add('opacity-100', 'scale-100');
+                }, 10);
             } else {
-                overlay.classList.add('opacity-0');
-                drawer.classList.add('translate-x-full');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
+                backdrop.classList.add('opacity-0');
+                box.classList.remove('opacity-100', 'scale-100');
+                box.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    container.classList.add('hidden');
+                }, 300);
             }
         }
     </script>
