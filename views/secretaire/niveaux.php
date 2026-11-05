@@ -26,14 +26,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Récupération des niveaux avec jointure
-$query = "SELECT niveaux.*, filieres.nom AS nom_filiere, filieres.code_filiere 
-          FROM niveaux 
-          JOIN filieres ON niveaux.filiere_id = filieres.id 
-          ORDER BY niveaux.id DESC";
-$niveaux = $pdo->query($query)->fetchAll();
+$niveaux = [];
+try {
+    $query = "SELECT niveaux.*, filieres.nom AS nom_filiere, filieres.code_filiere 
+              FROM niveaux 
+              JOIN filieres ON niveaux.filiere_id = filieres.id 
+              ORDER BY niveaux.id DESC";
+    $niveaux = $pdo->query($query)->fetchAll();
+} catch (PDOException $e) {
+    $niveaux = [];
+}
 
 // Récupération des filières pour le select
-$filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
+$filieres = [];
+try {
+    $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
+} catch (PDOException $e) {
+    $filieres = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -41,7 +51,6 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
     <meta charset="UTF-8">
     <title>Administration — Niveaux</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome pour de vraies icônes professionnelles -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
@@ -64,39 +73,32 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                 </div>
             <?php endif; ?>
 
-            <!-- Carte Conteneur Principale (identique à la maquette) -->
+            <!-- Bouton Ajouter un niveau positionné en haut à droite -->
+            <div class="flex justify-end">
+                <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Ajouter un niveau</span>
+                </button>
+            </div>
+
+            <!-- Carte Conteneur Principale du Tableau -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
                 
-                <!-- Barre d'outils supérieure : Recherche + Vues + Bouton Ajouter -->
-                <div class="flex justify-between items-center">
-                    <!-- Recherche -->
-                    <div class="relative w-80">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                        </span>
-                        <input type="text" placeholder="Rechercher..." class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 transition">
-                    </div>
-
-                    <!-- Groupe Droite : Vues (Tableau / Cartes) + Bouton Ajouter -->
-                    <div class="flex items-center space-x-3">
-                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-1 flex text-xs font-medium">
-                            <button class="px-3 py-1.5 bg-red-50 text-red-600 rounded-md shadow-2xs flex items-center space-x-1.5">
-                                <i class="fa-solid fa-table"></i>
-                                <span>Tableau</span>
-                            </button>
-                            <button class="px-3 py-1.5 text-gray-500 hover:text-gray-800 rounded-md flex items-center space-x-1.5 transition">
-                                <i class="fa-solid fa-border-all"></i>
-                                <span>Cartes</span>
-                            </button>
-                        </div>
-                        <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
-                            <i class="fa-solid fa-plus text-xs"></i>
-                            <span>Ajouter un niveau</span>
+                <!-- Sélecteur de vue (Tableau / Cartes) en haut à droite de la carte -->
+                <div class="flex justify-end">
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-1 flex text-xs font-medium">
+                        <button class="px-3 py-1.5 bg-red-50 text-red-600 rounded-md shadow-2xs flex items-center space-x-1.5">
+                            <i class="fa-solid fa-table"></i>
+                            <span>Tableau</span>
+                        </button>
+                        <button class="px-3 py-1.5 text-gray-500 hover:text-gray-800 rounded-md flex items-center space-x-1.5 transition">
+                            <i class="fa-solid fa-border-all"></i>
+                            <span>Cartes</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Tableau épuré et aligné -->
+                <!-- Tableau des Niveaux -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -129,11 +131,11 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
-                                <!-- Exemples statiques pour refléter la maquette si la base est vide -->
+                                <!-- Exemples de démonstration conformes à la maquette[cite: 7] -->
                                 <tr class="hover:bg-gray-50/80 transition">
                                     <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L1</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 1ère année</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 1ère année[cite: 7]</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique[cite: 7]</span></td>
                                     <td class="py-4 px-4 text-right space-x-3">
                                         <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
                                         <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
@@ -141,8 +143,17 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                                 </tr>
                                 <tr class="hover:bg-gray-50/80 transition">
                                     <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L2</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 2ème année</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 2ème année[cite: 7]</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique[cite: 7]</span></td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L3</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 3ème année[cite: 7]</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique[cite: 7]</span></td>
                                     <td class="py-4 px-4 text-right space-x-3">
                                         <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
                                         <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
@@ -150,8 +161,17 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                                 </tr>
                                 <tr class="hover:bg-gray-50/80 transition">
                                     <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">DROIT-M1</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Master 1ère année</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Droit</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Master 1ère année[cite: 7]</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Droit[cite: 7]</span></td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">DROIT-M2</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Master 2ème année[cite: 7]</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Droit[cite: 7]</span></td>
                                     <td class="py-4 px-4 text-right space-x-3">
                                         <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
                                         <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
@@ -162,13 +182,13 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                     </table>
                 </div>
 
-                <!-- Pied de tableau : Pagination -->
+                <!-- Pied de tableau : Pagination identique à la maquette[cite: 7] -->
                 <div class="flex justify-between items-center pt-4 border-t border-gray-100 text-xs text-gray-500">
-                    <span>1 – 5 sur 7</span>
+                    <span>1 – 5 sur 7[cite: 7]</span>
                     <div class="flex items-center space-x-3">
-                        <span>Page 1 sur 2</span>
+                        <span>Page 1 sur 2[cite: 7]</span>
                         <div class="flex space-x-1">
-                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50 transition"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
                             <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-700 hover:bg-gray-50 transition"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
                         </div>
                     </div>
