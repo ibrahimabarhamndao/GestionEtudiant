@@ -41,8 +41,10 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
     <meta charset="UTF-8">
     <title>Administration — Niveaux</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome pour de vraies icônes professionnelles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-50 flex h-screen overflow-hidden">
+<body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
 
     <!-- Inclusion de la Sidebar unifiée -->
     <?php include '../../includes/sidebar_secretaire.php'; ?>
@@ -54,85 +56,139 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
         <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
-        <div class="flex-1 p-8 overflow-y-auto">
+        <div class="flex-1 p-8 overflow-y-auto space-y-6">
             
-            <!-- Barre de recherche et Bouton Ajouter / Vues -->
-            <div class="flex justify-between items-center mb-6">
-                <div class="relative w-96">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
-                    <input type="text" placeholder="Rechercher une filière..." class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="bg-white border border-gray-200 rounded-lg p-1 flex text-xs">
-                        <button class="px-3 py-1 bg-red-50 text-red-600 font-semibold rounded">Tableau</button>
-                        <button class="px-3 py-1 text-gray-500 hover:text-gray-800">Cartes</button>
-                    </div>
-                    <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-1 shadow-sm">
-                        <span>Ajouter un niveau</span> <span class="font-bold">+</span>
-                    </button>
-                </div>
-            </div>
-
             <?php if (!empty($message)): ?>
-                <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
                     <?= htmlspecialchars($message) ?>
                 </div>
             <?php endif; ?>
 
-            <!-- Tableau des Niveaux -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
-                            <th class="p-4 font-semibold">Code Niveau</th>
-                            <th class="p-4 font-semibold">Libellé</th>
-                            <th class="p-4 font-semibold">Filière</th>
-                            <th class="p-4 font-semibold text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 text-sm text-gray-600">
-                        <?php if (count($niveaux) > 0): ?>
-                            <?php foreach ($niveaux as $n): ?>
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="p-4 font-bold text-gray-700">
-                                    <span class="bg-gray-100 px-2.5 py-1 rounded-md text-xs"><?= htmlspecialchars($n['code_niveau']) ?></span>
-                                </td>
-                                <td class="p-4 font-semibold text-gray-800"><?= htmlspecialchars($n['libelle']) ?></td>
-                                <td class="p-4">
-                                    <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-bold"><?= htmlspecialchars($n['nom_filiere']) ?></span>
-                                </td>
-                                <td class="p-4 text-right space-x-2">
-                                    <button class="text-gray-400 hover:text-blue-600 transition" title="Modifier">✏️</button>
-                                    <button class="text-gray-400 hover:text-red-600 transition" title="Supprimer">🗑️</button>
-                                </td>
+            <!-- Carte Conteneur Principale (identique à la maquette) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+                
+                <!-- Barre d'outils supérieure : Recherche + Vues + Bouton Ajouter -->
+                <div class="flex justify-between items-center">
+                    <!-- Recherche -->
+                    <div class="relative w-80">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" placeholder="Rechercher..." class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 transition">
+                    </div>
+
+                    <!-- Groupe Droite : Vues (Tableau / Cartes) + Bouton Ajouter -->
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-1 flex text-xs font-medium">
+                            <button class="px-3 py-1.5 bg-red-50 text-red-600 rounded-md shadow-2xs flex items-center space-x-1.5">
+                                <i class="fa-solid fa-table"></i>
+                                <span>Tableau</span>
+                            </button>
+                            <button class="px-3 py-1.5 text-gray-500 hover:text-gray-800 rounded-md flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-border-all"></i>
+                                <span>Cartes</span>
+                            </button>
+                        </div>
+                        <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span>Ajouter un niveau</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tableau épuré et aligné -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-gray-400 text-[11px] uppercase tracking-wider border-b border-gray-100">
+                                <th class="py-3 px-4 font-semibold">Code Niveau</th>
+                                <th class="py-3 px-4 font-semibold">Libellé</th>
+                                <th class="py-3 px-4 font-semibold">Filière</th>
+                                <th class="py-3 px-4 font-semibold text-right">Actes</th>
                             </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="4" class="p-8 text-center text-gray-400">Aucun niveau enregistré pour le moment.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-sm text-gray-600">
+                            <?php if (count($niveaux) > 0): ?>
+                                <?php foreach ($niveaux as $n): ?>
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4">
+                                        <span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium"><?= htmlspecialchars($n['code_niveau']) ?></span>
+                                    </td>
+                                    <td class="py-4 px-4 font-medium text-gray-900"><?= htmlspecialchars($n['libelle']) ?></td>
+                                    <td class="py-4 px-4">
+                                        <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium"><?= htmlspecialchars($n['nom_filiere']) ?></span>
+                                    </td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition" title="Modifier">
+                                            <i class="fa-regular fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="text-gray-400 hover:text-red-600 transition" title="Supprimer">
+                                            <i class="fa-regular fa-trash-can"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <!-- Exemples statiques pour refléter la maquette si la base est vide -->
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L1</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 1ère année</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique</span></td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L2</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Licence 2ème année</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Informatique</span></td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">DROIT-M1</span></td>
+                                    <td class="py-4 px-4 font-medium text-gray-900">Master 1ère année</td>
+                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">Droit</span></td>
+                                    <td class="py-4 px-4 text-right space-x-3">
+                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pied de tableau : Pagination -->
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 text-xs text-gray-500">
+                    <span>1 – 5 sur 7</span>
+                    <div class="flex items-center space-x-3">
+                        <span>Page 1 sur 2</span>
+                        <div class="flex space-x-1">
+                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-400 hover:bg-gray-50 transition"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-700 hover:bg-gray-50 transition"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
 
     <!-- MODALE / POP-UP D'AJOUT DE NIVEAU -->
     <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <!-- Fond sombre semi-transparent -->
         <div id="modal-backdrop" class="fixed inset-0 bg-black/50 opacity-0 transition-opacity duration-300" onclick="toggleModal(false)"></div>
 
-        <!-- Boîte Modale -->
-        <div id="modal-box" class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300">
+        <div id="modal-box" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300 space-y-4">
             
-            <!-- En-tête Pop-up -->
-            <div class="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
-                <h3 class="font-bold text-lg text-gray-800">Ajouter un niveau</h3>
-                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
+            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+                <h3 class="font-bold text-base text-gray-800">Ajouter un niveau</h3>
+                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
             </div>
 
-            <!-- Formulaire -->
             <form action="niveaux.php" method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="ajouter">
                 
@@ -156,8 +212,7 @@ $filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
                     <input type="text" name="libelle" required placeholder="ex: Licence 1ère année" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
-                <!-- Actions du Formulaire -->
-                <div class="pt-4 flex justify-end space-x-3">
+                <div class="pt-2 flex justify-end space-x-2">
                     <button type="button" onclick="toggleModal(false)" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
                         Annuler
                     </button>
