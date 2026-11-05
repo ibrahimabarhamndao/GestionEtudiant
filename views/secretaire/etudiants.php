@@ -1,5 +1,7 @@
 <?php
 $pageActuelle = 'etudiants';
+$titrePage = 'Étudiants & Comptes';
+$descriptionPage = 'Gérez les inscriptions et comptes étudiants';
 require_once '../../config/db.php';
 
 $message = "";
@@ -77,26 +79,8 @@ $classes = $pdo->query("SELECT * FROM classes ORDER BY code_classe ASC")->fetchA
     <!-- Contenu Principal -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
         
-        <!-- Header Supérieur -->
-        <header class="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
-            <div>
-                <h2 class="text-xl font-bold text-gray-800">Étudiants & Comptes</h2>
-                <p class="text-xs text-gray-500">Gérez les inscriptions et comptes étudiants</p>
-            </div>
-            <div class="flex items-center space-x-4">
-                <div class="relative">
-                    <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">2</span>
-                    <button class="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full">🔔</button>
-                </div>
-                <div class="flex items-center space-x-2 border-l pl-4 border-gray-200">
-                    <div class="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center font-bold text-sm">S</div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-800">Secrétaire</p>
-                        <p class="text-[10px] text-gray-500">Secrétaire</p>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <!-- Header Supérieur Dynamique -->
+        <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
         <div class="flex-1 p-8 overflow-y-auto">
@@ -238,7 +222,7 @@ $classes = $pdo->query("SELECT * FROM classes ORDER BY code_classe ASC")->fetchA
                 <p class="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">Information Étudiant</p>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matricule</label>
-                    <input type="text" name="matricule" value="ESP221-2024-00<? = rand(6,9) ?>" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="matricule" value="ESP221-2024-007" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
