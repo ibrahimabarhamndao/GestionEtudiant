@@ -48,8 +48,8 @@ $niveaux = $pdo->query("SELECT * FROM niveaux ORDER BY libelle ASC")->fetchAll()
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden">
 
-    <!-- Sidebar -->
-    <?php include '../../includes/sidebar_secretaire.php'; ?>
+      <!-- Inclusion de la Sidebar unifiée -->
+    <?php include '../../includes/sidebar_secretaire.php'; ?>   
 
     <!-- Contenu Principal -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
