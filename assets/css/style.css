@@ -1,0 +1,273 @@
+/* ==========================================
+   1. RESET & BASE
+   ========================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f6f9;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* ==========================================
+   2. PAGE DE CONNEXION (DESIGN 2 PARTIES)
+   ========================================== */
+body.login-body {
+    background-color: #f4f6f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.login-container-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 960px;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    display: flex;
+    overflow: hidden;
+}
+
+/* Partie Gauche : Bloc Rouge Institutionnel */
+.login-left-panel {
+    background: #e63946; /* Rouge précis ESP 221 */
+    color: white;
+    flex: 1;
+    padding: 50px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Cercles décoratifs d'arrière-plan */
+.login-left-panel::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: -50px;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+}
+
+.login-left-panel::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    right: -50px;
+    width: 250px;
+    height: 250px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+}
+
+.logo-box {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    margin-bottom: 25px;
+    z-index: 1;
+}
+
+.login-left-panel h2 {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 12px;
+    z-index: 1;
+}
+
+/* Petite ligne sous le titre de gauche */
+.login-left-panel h2::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.6);
+    margin: 15px auto 0 auto;
+}
+
+.left-subtitle {
+    font-size: 14px;
+    opacity: 0.95;
+    margin-bottom: 40px;
+    z-index: 1;
+}
+
+.left-footer-text {
+    font-size: 12px;
+    opacity: 0.85;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    z-index: 1;
+}
+
+.esp-tag {
+    display: inline-block;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+    z-index: 1;
+}
+
+/* Partie Droite : Formulaire */
+.login-right-panel {
+    flex: 1.1;
+    padding: 50px 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.form-header {
+    margin-bottom: 30px;
+}
+
+.form-header h2 {
+    font-size: 26px;
+    color: #1a1a1a;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.form-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #444;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: #fafbfc;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    border-color: #e63946;
+    background-color: #fff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.15);
+}
+
+.btn-submit {
+    width: 100%;
+    background-color: #e63946;
+    color: white;
+    border: none;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(230, 57, 70, 0.3);
+}
+
+.btn-submit:hover {
+    background-color: #c5303c;
+}
+
+.alert-error {
+    background-color: #ffe6e6;
+    color: #e63946;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid #ffcccc;
+}
+
+.demo-footer {
+    margin-top: 30px;
+    text-align: center;
+    color: #777;
+    font-size: 11px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 20px;
+}
+
+/* ==========================================
+   3. TABLEAUX DE BORD ET ESPACES INTERNES
+   ========================================== */
+.dashboard-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+table th, table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #444;
+}
+
+table tr:hover {
+    background-color: #f9f9f9;
+}
