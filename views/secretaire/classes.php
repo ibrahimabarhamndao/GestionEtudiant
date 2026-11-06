@@ -1,58 +1,79 @@
 <?php
 $pageActuelle = 'classes'; 
-$titrePage = 'Cours'; 
+$titrePage = 'Classes'; 
 $descriptionPage = 'Organisez les classes par filière et niveau'; 
 require_once '../../config/db.php';
 
-// Gestion de l'ajout d'une classe
 $message = "";
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter') {
+
+// Traitement de l'ajout d'une classe
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter_classe') {
     $code_classe = trim($_POST['code_classe']);
     $nom = trim($_POST['nom']);
     $capacite = trim($_POST['capacite']);
-    $filiere_id = trim($_POST['filiere_id']);
     $niveau_id = trim($_POST['niveau_id']);
 
     if (!empty($code_classe) && !empty($nom)) {
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS classes (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                code_classe VARCHAR(50) UNIQUE NOT NULL,
+                code_classe VARCHAR(50) NOT NULL,
                 nom VARCHAR(150) NOT NULL,
                 capacite INT DEFAULT 30,
-                filiere_id INT,
-                niveau_id INT,
+                niveau_id INT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )");
 
-            $stmt = $pdo->prepare("INSERT INTO classes (code_classe, nom, capacite, filiere_id, niveau_id) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$code_classe, $nom, $capacite, $filiere_id, $niveau_id]);
+            $stmt = $pdo->prepare("INSERT INTO classes (code_classe, nom, capacite, niveau_id) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$code_classe, $nom, $capacite ?: 30, $niveau_id ?: null]);
+            
             header("Location: classes.php");
             exit();
         } catch (PDOException $e) {
             $message = "Erreur : Ce code de classe existe déjà.";
         }
     } else {
-        $message = "Veuillez remplir les champs obligatoires.";
+        $message = "Veuillez remplir les champs obligatoires (*).";
     }
 }
 
-// Récupération des classes
 $classes = [];
+$niveaux = [];
 try {
-    $classes = $pdo->query("SELECT * FROM classes ORDER BY id DESC")->fetchAll();
+    // Jointure classes -> niveaux -> filières (code filière + code niveau)
+    $queryClasses = "SELECT classes.*, niveaux.code_niveau, filieres.code_filiere 
+                     FROM classes 
+                     LEFT JOIN niveaux ON classes.niveau_id = niveaux.id 
+                     LEFT JOIN filieres ON niveaux.filiere_id = filieres.id 
+                     ORDER BY classes.id DESC";
+    $classes = $pdo->query($queryClasses)->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $classes = [];
 }
 
-// Récupération des filières et niveaux pour le formulaire d'ajout
-$filieres = $pdo->query("SELECT * FROM filieres ORDER BY nom ASC")->fetchAll();
-$niveaux = $pdo->query("SELECT * FROM niveaux ORDER BY libelle ASC")->fetchAll();
+try {
+    $niveaux = $pdo->query("SELECT * FROM niveaux ORDER BY code_niveau ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $niveaux = [];
+}
+
+// Données de démonstration conformes à la maquette (si la table est vide)
+if (count($classes) === 0) {
+    $classes = [
+        ['code_classe' => 'INFO-L1-A',  'nom' => 'Informatique L1 Groupe A', 'capacite' => 35, 'code_filiere' => 'INFO',  'code_niveau' => 'INFO-L1'],
+        ['code_classe' => 'INFO-L2-A',  'nom' => 'Informatique L2 Groupe A', 'capacite' => 30, 'code_filiere' => 'INFO',  'code_niveau' => 'INFO-L2'],
+        ['code_classe' => 'GEST-L1-A',  'nom' => 'Gestion L1 Groupe A',      'capacite' => 40, 'code_filiere' => 'GEST',  'code_niveau' => 'GEST-L1'],
+        ['code_classe' => 'MARK-L1-A',  'nom' => 'Marketing L1 Groupe A',    'capacite' => 30, 'code_filiere' => 'MARK',  'code_niveau' => 'MARK-L1'],
+        ['code_classe' => 'DROIT-M1-A', 'nom' => 'Droit M1 Groupe A',        'capacite' => 25, 'code_filiere' => 'DROIT', 'code_niveau' => 'DROIT-M1'],
+    ];
+}
+$total = count($classes);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Administration — Classes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -77,145 +98,119 @@ $niveaux = $pdo->query("SELECT * FROM niveaux ORDER BY libelle ASC")->fetchAll()
                 </div>
             <?php endif; ?>
 
-            <!-- Barre d'outils supérieure : Recherche + Bouton Ajouter -->
-            <div class="flex items-center space-x-3">
+            <!-- Barre d'outils : Recherche (gauche) + Bouton Ajouter (droite) -->
+            <div class="flex items-center justify-between">
                 <div class="relative w-80">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    <input type="text" placeholder="Rechercher une classe..." class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-sm"></i>
                     </span>
-                    <input type="text" placeholder="Rechercher une classe..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 transition shadow-2xs">
                 </div>
-                <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
-                    <i class="fa-solid fa-plus text-xs"></i>
+                <button onclick="toggleDrawer(true)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
                     <span>Ajouter</span>
+                    <i class="fa-solid fa-plus text-xs"></i>
                 </button>
             </div>
 
-            <!-- Carte Conteneur Principale du Tableau -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+            <!-- Carte conteneur principale -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 
-                <!-- Sélecteur de vue (Tableau / Cartes) en haut à droite de la carte -->
-                <div class="flex justify-end">
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-1 flex text-xs font-medium">
-                        <button class="px-3 py-1.5 bg-red-50 text-red-600 rounded-md shadow-2xs flex items-center space-x-1.5">
+                <!-- Sélecteur de vue (Tableau / Cartes) -->
+                <div class="flex justify-end px-4 py-3 border-b border-gray-100">
+                    <div class="bg-gray-100 rounded-lg p-1 flex text-xs font-medium">
+                        <button id="btn-table" type="button" onclick="setView('table')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition bg-white text-red-600 shadow-sm">
                             <i class="fa-solid fa-table"></i>
                             <span>Tableau</span>
                         </button>
-                        <button class="px-3 py-1.5 text-gray-500 hover:text-gray-800 rounded-md flex items-center space-x-1.5 transition">
+                        <button id="btn-cards" type="button" onclick="setView('cards')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition text-gray-500 hover:text-gray-800">
                             <i class="fa-solid fa-border-all"></i>
                             <span>Cartes</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Tableau des Classes / Cours -->
-                <div class="overflow-x-auto">
+                <!-- VUE TABLEAU -->
+                <div id="view-table" class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="text-gray-400 text-[11px] uppercase tracking-wider border-b border-gray-100">
-                                <th class="py-3 px-4 font-semibold">Classe de code</th>
-                                <th class="py-3 px-4 font-semibold">Nom</th>
-                                <th class="py-3 px-4 font-semibold">Capacité</th>
-                                <th class="py-3 px-4 font-semibold">Filière</th>
-                                <th class="py-3 px-4 font-semibold">Niveau</th>
-                                <th class="py-3 px-4 font-semibold text-right">Actes</th>
+                            <tr class="bg-gray-200 text-slate-500 text-[11px] uppercase tracking-wider">
+                                <th class="py-4 px-6 font-semibold">Code classe</th>
+                                <th class="py-4 px-4 font-semibold">Nom</th>
+                                <th class="py-4 px-4 font-semibold text-center">Capacité</th>
+                                <th class="py-4 px-4 font-semibold text-center">Filière</th>
+                                <th class="py-4 px-4 font-semibold text-center">Niveau</th>
+                                <th class="py-4 px-6 font-semibold text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 text-sm text-gray-600">
-                            <?php if (count($classes) > 0): ?>
-                                <?php foreach ($classes as $c): ?>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4">
-                                        <span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium"><?= htmlspecialchars($c['code_classe']) ?></span>
-                                    </td>
-                                    <td class="py-4 px-4 font-medium text-gray-900"><?= htmlspecialchars($c['nom']) ?></td>
-                                    <td class="py-4 px-4 text-gray-600"><?= htmlspecialchars($c['capacite']) ?> places</td>
-                                    <td class="py-4 px-4">
-                                        <span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">INFO</span>
-                                    </td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs">INFO-L1</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition" title="Voir"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition" title="Modifier"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <!-- Données exactes issues de votre maquette[cite: 8] -->
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L1-A</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Informatique L1 Groupe A[cite: 8]</td>
-                                    <td class="py-4 px-4 text-gray-600">35 places[cite: 8]</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">INFO[cite: 8]</span></td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs font-medium">INFO-L1[cite: 8]</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">INFO-L2-A</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Informatique L2 Groupe A[cite: 8]</td>
-                                    <td class="py-4 px-4 text-gray-600">30 places[cite: 8]</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">INFO[cite: 8]</span></td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs font-medium">INFO-L2[cite: 8]</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">GEST-L1-A</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Gestion L1 Groupe A[cite: 8]</td>
-                                    <td class="py-4 px-4 text-gray-600">40 places[cite: 8]</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">GEST[cite: 8]</span></td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs font-medium">GEST-L1[cite: 8]</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">MARQUE-L1-A</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Marketing L1 Groupe A[cite: 8]</td>
-                                    <td class="py-4 px-4 text-gray-600">30 places[cite: 8]</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">MARQUE[cite: 8]</span></td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs font-medium">MARQUE-L1[cite: 8]</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                                <tr class="hover:bg-gray-50/80 transition">
-                                    <td class="py-4 px-4"><span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md text-xs font-medium">DROIT-M1-A</span></td>
-                                    <td class="py-4 px-4 font-medium text-gray-900">Droit M1 Groupe A[cite: 8]</td>
-                                    <td class="py-4 px-4 text-gray-600">25 places[cite: 8]</td>
-                                    <td class="py-4 px-4"><span class="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-xs font-medium">DROIT[cite: 8]</span></td>
-                                    <td class="py-4 px-4 text-gray-500 text-xs font-medium">DROIT-M1[cite: 8]</td>
-                                    <td class="py-4 px-4 text-right space-x-3">
-                                        <button class="text-gray-400 hover:text-emerald-600 transition"><i class="fa-regular fa-eye"></i></button>
-                                        <button class="text-gray-400 hover:text-blue-600 transition"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="text-gray-400 hover:text-red-600 transition"><i class="fa-regular fa-trash-can"></i></button>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
+                        <tbody class="divide-y divide-gray-100 text-sm">
+                            <?php foreach ($classes as $c): ?>
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="py-4 px-6">
+                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($c['code_classe']) ?></span>
+                                </td>
+                                <td class="py-4 px-4 font-bold text-gray-900"><?= htmlspecialchars($c['nom']) ?></td>
+                                <td class="py-4 px-4 text-center text-xs font-bold text-gray-900"><?= htmlspecialchars($c['capacite']) ?> places</td>
+                                <td class="py-4 px-4 text-center">
+                                    <span class="inline-block bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($c['code_filiere'] ?? '-') ?></span>
+                                </td>
+                                <td class="py-4 px-4 text-center">
+                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($c['code_niveau'] ?? 'Non assigné') ?></span>
+                                </td>
+                                <td class="py-4 px-6 text-center space-x-3">
+                                    <button class="text-slate-500 hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="text-slate-500 hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
+                                    <button class="text-slate-500 hover:text-gray-900 transition" title="Voir"><i class="fa-regular fa-eye"></i></button>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pied de tableau : Pagination -->
-                <div class="flex justify-between items-center pt-4 border-t border-gray-100 text-xs text-gray-500">
-                    <span>1 – 5 sur 5[cite: 8]</span>
+                <!-- VUE CARTES -->
+                <div id="view-cards" class="hidden p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <?php foreach ($classes as $c): ?>
+                        <div class="bg-white border border-gray-100 rounded-xl shadow-md p-4">
+                            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                                <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded text-[11px] font-medium"><?= htmlspecialchars($c['code_classe']) ?></span>
+                                <div class="flex items-center space-x-3 text-slate-500">
+                                    <button class="hover:text-gray-900 transition" title="Voir"><i class="fa-regular fa-eye text-xs"></i></button>
+                                    <button class="hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button class="hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                </div>
+                            </div>
+                            <div class="pt-3 space-y-3">
+                                <div>
+                                    <p class="text-xs text-slate-500">Nom</p>
+                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($c['nom']) ?></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500">Capacité</p>
+                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($c['capacite']) ?> places</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Filière</p>
+                                    <span class="inline-block bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($c['code_filiere'] ?? '-') ?></span>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500 mb-1">Niveau</p>
+                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($c['code_niveau'] ?? 'Non assigné') ?></span>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
+                    <span>1–<?= $total ?> sur <?= $total ?></span>
                     <div class="flex items-center space-x-3">
-                        <span>Page 1 sur 1[cite: 8]</span>
+                        <span>Page 1 sur 1</span>
                         <div class="flex space-x-1">
-                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
-                            <button class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
                         </div>
                     </div>
                 </div>
@@ -224,69 +219,92 @@ $niveaux = $pdo->query("SELECT * FROM niveaux ORDER BY libelle ASC")->fetchAll()
         </div>
     </main>
 
-    <!-- MODALE / POP-UP D'AJOUT DE CLASSE -->
-    <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div id="modal-backdrop" class="fixed inset-0 bg-black/50 opacity-0 transition-opacity duration-300" onclick="toggleModal(false)"></div>
-
-        <div id="modal-box" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300 space-y-4">
-            
-            <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                <h3 class="font-bold text-base text-gray-800">Ajouter une classe</h3>
-                <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+    <!-- DRAWER LATÉRAL -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
+    
+    <div id="drawer" class="fixed top-0 right-0 h-full w-[420px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
+        <div>
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 class="font-bold text-base text-gray-800">Nouvelle classe</h3>
+                <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
             </div>
 
-            <form action="classes.php" method="POST" class="space-y-4">
-                <input type="hidden" name="action" value="ajouter">
+            <form action="classes.php" method="POST" class="p-6 space-y-4">
+                <input type="hidden" name="action" value="ajouter_classe">
                 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Code Classe</label>
-                    <input type="text" name="code_classe" required placeholder="ex: INFO-L1-A" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CODE*</label>
+                    <input type="text" name="code_classe" required placeholder="INFO-L1-A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom de la classe</label>
-                    <input type="text" name="nom" required placeholder="ex: Informatique L1 Groupe A" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NOM*</label>
+                    <input type="text" name="nom" required placeholder="Informatique L1 Groupe A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Capacité (places)</label>
-                    <input type="number" name="capacite" value="30" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CAPACITE</label>
+                    <div class="relative">
+                        <input type="number" name="capacite" placeholder="30" value="30" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
+                            <i class="fa-regular fa-calendar text-xs"></i>
+                        </span>
+                    </div>
                 </div>
 
-                <div class="pt-2 flex justify-end space-x-2">
-                    <button type="button" onclick="toggleModal(false)" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NIVEAU</label>
+                    <select name="niveau_id" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                        <option value="">Sélectionner un niveau</option>
+                        <?php foreach ($niveaux as $niv): ?>
+                            <option value="<?= $niv['id'] ?>"><?= htmlspecialchars($niv['code_niveau']) ?> — <?= htmlspecialchars($niv['libelle']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
+                    <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
                         Annuler
                     </button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
-                        Enregistrer
+                    <button type="submit" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
+                        Ajouter la classe
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Script de contrôle du Pop-up -->
+    <!-- Scripts -->
     <script>
-        function toggleModal(open) {
-            const container = document.getElementById('modal-container');
-            const backdrop = document.getElementById('modal-backdrop');
-            const box = document.getElementById('modal-box');
-
+        function toggleDrawer(open) {
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('drawer-overlay');
             if (open) {
-                container.classList.remove('hidden');
-                setTimeout(() => {
-                    backdrop.classList.remove('opacity-0');
-                    box.classList.remove('opacity-0', 'scale-95');
-                    box.classList.add('opacity-100', 'scale-100');
-                }, 10);
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                drawer.classList.remove('translate-x-full');
             } else {
-                backdrop.classList.add('opacity-0');
-                box.classList.remove('opacity-100', 'scale-100');
-                box.classList.add('opacity-0', 'scale-95');
-                setTimeout(() => {
-                    container.classList.add('hidden');
-                }, 300);
+                overlay.classList.add('opacity-0');
+                drawer.classList.add('translate-x-full');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
             }
+        }
+
+        // Bascule entre la vue Tableau et la vue Cartes
+        function setView(mode) {
+            const isTable = mode === 'table';
+            document.getElementById('view-table').classList.toggle('hidden', !isTable);
+            document.getElementById('view-cards').classList.toggle('hidden', isTable);
+
+            const active = ['bg-white', 'text-red-600', 'shadow-sm'];
+            const inactive = ['text-gray-500', 'hover:text-gray-800'];
+            const btnTable = document.getElementById('btn-table');
+            const btnCards = document.getElementById('btn-cards');
+
+            [[btnTable, isTable], [btnCards, !isTable]].forEach(([btn, on]) => {
+                active.forEach(c => btn.classList.toggle(c, on));
+                inactive.forEach(c => btn.classList.toggle(c, !on));
+            });
         }
     </script>
 </body>

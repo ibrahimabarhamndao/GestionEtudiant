@@ -30,6 +30,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Administration — Paramètres</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Masque la barre de défilement tout en gardant le scroll actif */
+        * {
+            scrollbar-width: none;      /* Firefox */
+            -ms-overflow-style: none;   /* Ancien Edge / IE */
+        }
+        *::-webkit-scrollbar {
+            display: none;              /* Chrome, Edge, Safari */
+        }
+    </style>
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
 

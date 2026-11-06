@@ -1,7 +1,7 @@
 <?php
 $pageActuelle = 'emploi_du_temps'; 
 $titrePage = 'Emploi du Temps'; 
-$descriptionPage = 'Planification hebdomadaire des cours'; 
+$descriptionPage = 'Planning hebdomadaire des cours'; 
 require_once '../../config/db.php';
 
 $message = "";
@@ -43,18 +43,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Récupération des classes pour le filtre
+// Récupération des classes pour le formulaire
 $classes = [];
 try {
     $classes = $pdo->query("SELECT * FROM classes ORDER BY nom ASC")->fetchAll();
 } catch (PDOException $e) {
     $classes = [];
 }
+
+// Couleur de chaque jour (fond, bordure, accent gauche)
+$couleurs = [
+    'Lundi'    => 'bg-red-50 border-red-100 border-l-red-400',
+    'Mardi'    => 'bg-blue-50 border-blue-100 border-l-blue-400',
+    'Mercredi' => 'bg-emerald-50 border-emerald-100 border-l-emerald-400',
+    'Jeudi'    => 'bg-purple-50 border-purple-100 border-l-purple-400',
+    'Vendredi' => 'bg-amber-50 border-amber-100 border-l-amber-400',
+];
+
+// Créneaux enregistrés, regroupés par jour
+$planning = array_fill_keys(array_keys($couleurs), []);
+$creneaux = [];
+try {
+    $creneaux = $pdo->query("SELECT * FROM emploi_du_temps ORDER BY heure_debut ASC")->fetchAll();
+} catch (PDOException $e) {
+    $creneaux = [];
+}
+foreach ($creneaux as $c) {
+    if (isset($planning[$c['jour']])) {
+        $planning[$c['jour']][] = [$c['heure_debut'], $c['matiere'], $c['salle'], $c['enseignant']];
+    }
+}
+
+// Données de démonstration conformes à la maquette (si aucun créneau)
+if (count($creneaux) === 0) {
+    $planning = [
+        'Lundi' => [
+            ['08h00', 'Algorithmique',         'Salle A101', 'Dr. Diallo'],
+            ['10h00', 'Base de données',       'Salle B203', 'Pr. Seck'],
+            ['14h00', 'Réseaux informatiques', 'Labo Info',  'Dr. Ndiaye'],
+        ],
+        'Mardi' => [
+            ['08h00', 'Mathématiques',      'Salle A102', 'Pr. Ba'],
+            ['10h00', 'Programmation Web',  'Labo Info',  'Dr. Diallo'],
+        ],
+        'Mercredi' => [
+            ['08h00', 'Systèmes d\'exploitation', 'Salle C301', 'Dr. Ndiaye'],
+            ['14h00', 'Anglais Technique',        'Salle A103', 'Pr. Fall'],
+        ],
+        'Jeudi' => [
+            ['08h00', 'Sécurité Informatique', 'Salle B201',    'Dr. Diallo'],
+            ['10h00', 'Gestion de Projet',     'Salle A101',    'Pr. Seck'],
+            ['14h00', 'TP Réseaux',            'Labo Réseaux',  'Dr. Ndiaye'],
+        ],
+        'Vendredi' => [
+            ['08h00', 'Architecture des SI', 'Salle C302', 'Pr. Ba'],
+        ],
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Administration — Emploi du Temps</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -71,7 +122,7 @@ try {
         <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-8 overflow-y-auto space-y-8">
             
             <?php if (!empty($message)): ?>
                 <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
@@ -79,223 +130,40 @@ try {
                 </div>
             <?php endif; ?>
 
-            <!-- Barre d'outils supérieure : Semaine / Classe / Bouton Ajouter -->
-            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                <span class="text-sm font-medium text-gray-600">Semaine du 23 au 27 septembre 2024</span>
-                
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-semibold text-gray-400 uppercase">Classe</span>
-                        <select class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-800 focus:outline-none focus:border-red-600">
-                            <option>Informatique L1 Groupe A</option>
-                            <option>Informatique L2 Groupe A</option>
-                            <option>Gestion L1 Groupe A</option>
-                        </select>
-                    </div>
-
-                    <button onclick="toggleModal(true)" class="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
-                        <i class="fa-solid fa-plus text-xs"></i>
-                        <span>Ajouter un créneau</span>
-                    </button>
-                </div>
+            <!-- Barre d'outils : Semaine (gauche) + Bouton Ajouter (droite) -->
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-slate-500">Semaine du 23 au 27 septembre 2024</span>
+                <button onclick="toggleModal(true)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    <span>Ajouter un créneau</span>
+                    <i class="fa-solid fa-plus text-xs"></i>
+                </button>
             </div>
 
-            <!-- Grille de l'Emploi du Temps (5 Jours) -->
+            <!-- Grille de l'emploi du temps (5 jours) -->
             <div class="grid grid-cols-5 gap-4 items-start">
-                
-                <!-- LUNDI (3 cours) -->
-                <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-800">Lundi</h3>
-                        <span class="text-[11px] text-gray-400 font-medium">3 cours</span>
+                <?php foreach ($planning as $jour => $cours): ?>
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="font-bold text-[11px] uppercase tracking-wider text-gray-800"><?= htmlspecialchars($jour) ?></h3>
                     </div>
-                    <div class="space-y-3">
-                        <!-- Cours 1 -->
-                        <div class="p-3 bg-red-50/60 border border-red-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-red-900">
-                                <span>08h00</span>
+                    <div class="p-3 space-y-3">
+                        <?php foreach ($cours as [$heure, $matiere, $salle, $enseignant]): ?>
+                        <div class="p-3 border border-l-2 rounded-lg space-y-1 group <?= $couleurs[$jour] ?>">
+                            <div class="flex justify-between items-start text-xs font-bold text-slate-500">
+                                <span><?= htmlspecialchars($heure) ?></span>
                                 <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
+                                    <button class="text-gray-400 hover:text-blue-600" title="Modifier"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
+                                    <button class="text-gray-400 hover:text-red-600" title="Supprimer"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
                                 </div>
                             </div>
-                            <h4 class="font-bold text-xs text-gray-900">Algorithmique</h4>
-                            <p class="text-[11px] text-gray-500">Salle A101</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Diallo</p>
+                            <h4 class="font-bold text-xs text-gray-900"><?= htmlspecialchars($matiere) ?></h4>
+                            <p class="text-[11px] text-slate-500"><?= htmlspecialchars($salle) ?></p>
+                            <p class="text-[11px] text-slate-500"><?= htmlspecialchars($enseignant) ?></p>
                         </div>
-                        <!-- Cours 2 -->
-                        <div class="p-3 bg-red-50/60 border border-red-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-red-900">
-                                <span>10h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Base de données</h4>
-                            <p class="text-[11px] text-gray-500">Salle B203</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Pr. Seck</p>
-                        </div>
-                        <!-- Cours 3 -->
-                        <div class="p-3 bg-red-50/60 border border-red-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-red-900">
-                                <span>14h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Réseaux informatiques</h4>
-                            <p class="text-[11px] text-gray-500">Informations sur le laboratoire</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Ndiaye</p>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-
-                <!-- MARDI (2 cours) -->
-                <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-800">Mardi</h3>
-                        <span class="text-[11px] text-gray-400 font-medium">2 cours</span>
-                    </div>
-                    <div class="space-y-3">
-                        <!-- Cours 1 -->
-                        <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-blue-900">
-                                <span>08h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Mathématiques</h4>
-                            <p class="text-[11px] text-gray-500">Salle A102</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Pr. Ba</p>
-                        </div>
-                        <!-- Cours 2 -->
-                        <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-blue-900">
-                                <span>10h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Programmation Web</h4>
-                            <p class="text-[11px] text-gray-500">Informations sur le laboratoire</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Diallo</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MERCREDI (2 cours) -->
-                <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-800">Mercredi</h3>
-                        <span class="text-[11px] text-gray-400 font-medium">2 cours</span>
-                    </div>
-                    <div class="space-y-3">
-                        <!-- Cours 1 -->
-                        <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-emerald-900">
-                                <span>08h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Systèmes d'exploitation</h4>
-                            <p class="text-[11px] text-gray-500">Salle C301</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Ndiaye</p>
-                        </div>
-                        <!-- Cours 2 -->
-                        <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-emerald-900">
-                                <span>14h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Technique anglaise</h4>
-                            <p class="text-[11px] text-gray-500">Salle A103</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Pr. Automne</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- JEUDI (3 cours) -->
-                <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-800">Jeudi</h3>
-                        <span class="text-[11px] text-gray-400 font-medium">3 cours</span>
-                    </div>
-                    <div class="space-y-3">
-                        <!-- Cours 1 -->
-                        <div class="p-3 bg-purple-50/60 border border-purple-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-purple-900">
-                                <span>08h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Sécurité informatique</h4>
-                            <p class="text-[11px] text-gray-500">Salle B201</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Diallo</p>
-                        </div>
-                        <!-- Cours 2 -->
-                        <div class="p-3 bg-purple-50/60 border border-purple-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-purple-900">
-                                <span>10h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Gestion de projet</h4>
-                            <p class="text-[11px] text-gray-500">Salle A101</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Pr. Seck</p>
-                        </div>
-                        <!-- Cours 3 -->
-                        <div class="p-3 bg-purple-50/60 border border-purple-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-purple-900">
-                                <span>14h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">TP Réseaux</h4>
-                            <p class="text-[11px] text-gray-500">Labo Réseaux</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Dr Ndiaye</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VENDREDI (1 cours) -->
-                <div class="bg-white rounded-2xl border border-gray-200 p-4 space-y-4 shadow-sm">
-                    <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-gray-800">Vendredi</h3>
-                        <span class="text-[11px] text-gray-400 font-medium">1 cours</span>
-                    </div>
-                    <div class="space-y-3">
-                        <!-- Cours 1 -->
-                        <div class="p-3 bg-amber-50/60 border border-amber-100 rounded-xl space-y-1.5 relative group">
-                            <div class="flex justify-between items-start text-xs font-bold text-amber-900">
-                                <span>08h00</span>
-                                <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
-                                    <button class="text-gray-400 hover:text-blue-600"><i class="fa-regular fa-pen-to-square text-[10px]"></i></button>
-                                    <button class="text-gray-400 hover:text-red-600"><i class="fa-regular fa-trash-can text-[10px]"></i></button>
-                                </div>
-                            </div>
-                            <h4 class="font-bold text-xs text-gray-900">Architecture des SI</h4>
-                            <p class="text-[11px] text-gray-500">Salle C302</p>
-                            <p class="text-[11px] text-gray-600 font-medium">Pr. Ba</p>
-                        </div>
-                    </div>
-                </div>
-
+                <?php endforeach; ?>
             </div>
         </div>
     </main>
@@ -321,8 +189,6 @@ try {
                         <?php foreach ($classes as $c): ?>
                             <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
                         <?php endforeach; ?>
-                        <!-- Option par défaut -->
-                        <option value="1">Informatique L1 Groupe A</option>
                     </select>
                 </div>
 
@@ -355,7 +221,7 @@ try {
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Enseignant</label>
-                        <input type="text" name="enseignant" required placeholder="ex: Dr Diallo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="enseignant" required placeholder="ex: Dr. Diallo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                 </div>
 

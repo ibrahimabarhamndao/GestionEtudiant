@@ -1,25 +1,28 @@
-<?php
-$titrePage = $titrePage ?? 'Administration';
-$descriptionPage = $descriptionPage ?? 'Gestion Scolaire';
-?>
-<header class="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
+<header class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-2xs">
+    <!-- Titre et sous-titre dynamiques -->
     <div>
-        <h2 class="text-xl font-bold text-gray-800"><?= htmlspecialchars($titrePage) ?></h2>
-        <p class="text-xs text-gray-500"><?= htmlspecialchars($descriptionPage) ?></p>
+        <h1 class="text-lg font-bold text-gray-900"><?= htmlspecialchars($titrePage ?? 'Tableau de bord') ?></h1>
+        <p class="text-xs text-gray-500"><?= htmlspecialchars($descriptionPage ?? 'Gestion de l\'application') ?></p>
     </div>
-    <div class="flex items-center space-x-4">
-        <!-- Notifications -->
-        <div class="relative">
-            <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">2</span>
-            <button class="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full">🔔</button>
-        </div>
-        <!-- Profil Secrétaire -->
-        <div class="flex items-center space-x-2 border-l pl-4 border-gray-200">
-            <div class="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center font-bold text-sm">S</div>
-            <div>
-                <p class="text-xs font-bold text-gray-800">Secrétaire</p>
-                <p class="text-[10px] text-gray-500">Secrétaire</p>
+
+    <!-- Profil et Notifications à droite -->
+    <div class="flex items-center space-x-6">
+        <!-- Icône de Notification avec badge -->
+        <a href="notifications.php" class="relative text-gray-500 hover:text-gray-700 transition" title="Notifications">
+            <i class="fa-regular fa-bell text-lg"></i>
+            <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">2</span>
+        </a>
+
+        <!-- Bloc Profil Secrétaire -->
+        <div class="flex items-center space-x-3 cursor-pointer">
+            <div class="w-9 h-9 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                S
             </div>
+            <div class="flex flex-col text-left">
+                <span class="text-sm font-bold text-gray-900 leading-tight">Secrétaire</span>
+                <span class="text-[11px] text-gray-500 leading-tight">Secrétaire</span>
+            </div>
+            <i class="fa-solid fa-chevron-down text-xs text-red-600 ml-1"></i>
         </div>
     </div>
 </header>
