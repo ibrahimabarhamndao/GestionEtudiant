@@ -210,13 +210,13 @@ $total = count($filieres);
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CODE*</label>
-                    <input type="text" name="code_filiere" required placeholder="INFO" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="code_filiere"  placeholder="INFO" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NOM*</label>
                     <div class="relative">
-                        <input type="text" name="nom" required placeholder="Informatique" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="nom"  placeholder="Informatique" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
                             <i class="fa-regular fa-calendar text-xs"></i>
                         </span>

@@ -360,17 +360,17 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matricule</label>
-                    <input type="text" name="matricule" required placeholder="ESP221-2024-007" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="matricule"  placeholder="ESP221-2024-007" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom*</label>
-                        <input type="text" name="nom" required placeholder="Diallo" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="nom"  placeholder="Diallo" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Prénom*</label>
-                        <input type="text" name="prenom" required placeholder="Mamadou" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="prenom"  placeholder="Mamadou" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                 </div>
 
@@ -399,7 +399,7 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Classe*</label>
-                    <select name="classe_id" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    <select name="classe_id"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                         <option value="">Sélectionner une classe</option>
                         <?php foreach ($classes as $c): ?>
                             <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>

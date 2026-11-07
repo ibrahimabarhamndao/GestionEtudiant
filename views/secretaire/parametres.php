@@ -79,23 +79,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom de l'établissement</label>
-                        <input type="text" name="nom_etablissement" value="École Supérieure Professionnelle 221" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="nom_etablissement" value="École Supérieure Professionnelle 221"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Adresse</label>
-                            <input type="text" name="adresse" value="Dakar, Sénégal" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <input type="text" name="adresse" value="Dakar, Sénégal"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Adresse e-mail de contact</label>
-                            <input type="email" name="email" value="contact@esp221.sn" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <input type="email" name="email" value="contact@esp221.sn"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Téléphone</label>
-                        <input type="text" name="telephone" value="+221 33 000 00 00" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="telephone" value="+221 33 000 00 00"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
 
                     <div class="pt-2">
@@ -119,15 +119,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="grid grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Année en cours</label>
-                            <input type="text" name="annee_cours" value="2024-2025" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <input type="text" name="annee_cours" value="2024-2025"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Date de rentrée</label>
-                            <input type="date" name="date_rentree" value="2024-10-01" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
+                            <input type="date" name="date_rentree" value="2024-10-01"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Date de clôture</label>
-                            <input type="date" name="date_cloture" value="2025-07-31" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
+                            <input type="date" name="date_cloture" value="2025-07-31"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
                         </div>
                     </div>
 
@@ -151,17 +151,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Mot de passe actuel</label>
-                        <input type="password" name="password_actuel" required placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="password" name="password_actuel"  placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nouveau mot de passe</label>
-                            <input type="password" name="nouveau_password" required placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <input type="password" name="nouveau_password"  placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Confirmatur</label>
-                            <input type="password" name="confirmer_password" required placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <input type="password" name="confirmer_password"  placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                         </div>
                     </div>
 

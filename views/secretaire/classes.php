@@ -234,12 +234,12 @@ $total = count($classes);
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CODE*</label>
-                    <input type="text" name="code_classe" required placeholder="INFO-L1-A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="code_classe"  placeholder="INFO-L1-A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NOM*</label>
-                    <input type="text" name="nom" required placeholder="Informatique L1 Groupe A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="nom"  placeholder="Informatique L1 Groupe A" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>

@@ -209,7 +209,7 @@ $total = count($niveaux);
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Filière</label>
-                    <select name="filiere_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
+                    <select name="filiere_id"  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600 bg-white">
                         <option value="">Sélectionner une filière</option>
                         <?php foreach ($filieres as $f): ?>
                             <option value="<?= $f['id'] ?>"><?= htmlspecialchars($f['nom']) ?> (<?= htmlspecialchars($f['code_filiere']) ?>)</option>
@@ -219,12 +219,12 @@ $total = count($niveaux);
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Code Niveau</label>
-                    <input type="text" name="code_niveau" required placeholder="ex: INFO-L1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="code_niveau"  placeholder="ex: INFO-L1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Libellé du niveau</label>
-                    <input type="text" name="libelle" required placeholder="ex: Licence 1ère année" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="libelle"  placeholder="ex: Licence 1ère année" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div class="pt-2 flex justify-end space-x-2">

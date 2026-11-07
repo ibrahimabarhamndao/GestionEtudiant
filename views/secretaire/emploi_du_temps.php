@@ -184,7 +184,7 @@ if (count($creneaux) === 0) {
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Classe</label>
-                    <select name="classe_id" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    <select name="classe_id"  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                         <option value="">Sélectionner une classe</option>
                         <?php foreach ($classes as $c): ?>
                             <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
@@ -195,7 +195,7 @@ if (count($creneaux) === 0) {
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Jour</label>
-                        <select name="jour" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                        <select name="jour"  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                             <option value="Lundi">Lundi</option>
                             <option value="Mardi">Mardi</option>
                             <option value="Mercredi">Mercredi</option>
@@ -205,23 +205,23 @@ if (count($creneaux) === 0) {
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Heure de début</label>
-                        <input type="text" name="heure_debut" required placeholder="ex: 08h00" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="heure_debut"  placeholder="ex: 08h00" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matière</label>
-                    <input type="text" name="matiere" required placeholder="ex: Algorithmique" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="matiere"  placeholder="ex: Algorithmique" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Salle / Lieu</label>
-                        <input type="text" name="salle" required placeholder="ex: Salle A101" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="salle"  placeholder="ex: Salle A101" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Enseignant</label>
-                        <input type="text" name="enseignant" required placeholder="ex: Dr. Diallo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <input type="text" name="enseignant"  placeholder="ex: Dr. Diallo" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                 </div>
 

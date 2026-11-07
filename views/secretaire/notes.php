@@ -239,7 +239,7 @@ foreach ($notes as $n) {
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Étudiant</label>
-                    <select name="etudiant_id" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    <select name="etudiant_id"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                         <option value="">Sélectionner un étudiant</option>
                         <?php foreach ($etudiants as $et): ?>
                             <option value="<?= $et['id'] ?>"><?= htmlspecialchars($et['prenom'] . ' ' . $et['nom']) ?> (<?= htmlspecialchars($et['matricule']) ?>)</option>
@@ -249,12 +249,12 @@ foreach ($notes as $n) {
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matière / Module</label>
-                    <input type="text" name="matiere" required placeholder="ex: Développement Web PHP" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="matiere"  placeholder="ex: Développement Web PHP" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Type d'évaluation</label>
-                    <select name="type" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    <select name="type"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                         <option value="CC">Contrôle Continu (CC)</option>
                         <option value="Examen">Examen</option>
                         <option value="Projet">Projet</option>
@@ -263,7 +263,7 @@ foreach ($notes as $n) {
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Note (/20)</label>
-                    <input type="number" step="0.25" min="0" max="20" name="valeur" required placeholder="ex: 15.5" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="number" step="0.25" min="0" max="20" name="valeur"  placeholder="ex: 15.5" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">

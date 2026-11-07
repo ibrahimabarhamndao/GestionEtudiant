@@ -268,17 +268,17 @@ function classeType($type) {
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom du document</label>
-                    <input type="text" name="nom_document" required placeholder="ex: Règlement intérieur 2025" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="nom_document"  placeholder="ex: Règlement intérieur 2025" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Type</label>
-                    <input type="text" name="type_fichier" required placeholder="PDF" value="PDF" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" name="type_fichier"  placeholder="PDF" value="PDF" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Catégorie</label>
-                    <select name="categorie" required class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    <select name="categorie"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
                         <option value="Administratif">Administratif</option>
                         <option value="Pédagogique">Pédagogique</option>
                         <option value="Cours">Cours</option>
