@@ -1,11 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <h1>VOICI MON APPLI</h1>
-</body>
-</html>
+<?php
+session_start();
+
+// Si l'utilisateur est déjà connecté, on l'oriente vers son dashboard
+if (isset($_SESSION['user_id'])) {
+    if ($_SESSION['role'] === 'secretaire') {
+        header('Location: views/secretaire/dashboard.php');
+        exit();
+    } else {
+        header('Location: views/user/dashboard.php');
+        exit();
+    }
+} else {
+    // Sinon, on l'envoie vers la page de connexion
+    header('Location: login.php');
+    exit();
+}
+?>
