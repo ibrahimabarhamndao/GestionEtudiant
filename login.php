@@ -30,8 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         // Validation du mot de passe (tolérance pour 1234, 123456 ou hash)
-        if ($user && ($password === '1234' || $password === '123456' || password_verify($password, $user['password']))) {
-            $_SESSION['user_id'] = $user['id'];
+// Vérification sécurisée du mot de passe.
+if ($user && password_verify($password, $user['password'])) {
+                $_SESSION['user_id'] = $user['id'];
             $_SESSION['nom'] = $user['nom'];
             $_SESSION['role'] = $user['role'];
 

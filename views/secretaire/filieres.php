@@ -4,32 +4,38 @@ $titrePage = 'Filières';
 $descriptionPage = 'Gérez les filières de formation'; 
 require_once '../../config/db.php';
 
+$recherche = trim($_GET['q'] ?? '');
 $message = "";
 
-// Traitement de l'ajout d'une filière
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter_filiere') {
-    $code_filiere = trim($_POST['code_filiere']);
-    $nom = trim($_POST['nom']);
-    $responsable = trim($_POST['responsable']);
-    $description = trim($_POST['description']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $id = $_POST['id'] ?? null;
+    $code_filiere = trim($_POST['code_filiere'] ?? '');
+    $nom = trim($_POST['nom'] ?? '');
+    $responsable = trim($_POST['responsable'] ?? '');
+    $description = trim($_POST['description'] ?? '');
 
     if (!empty($code_filiere) && !empty($nom)) {
         try {
-            // Création automatique de la table filieres si elle n'existe pas
             $pdo->exec("CREATE TABLE IF NOT EXISTS filieres (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                code_filiere VARCHAR(50) NOT NULL,
+                code_filiere VARCHAR(50) NOT NULL UNIQUE,
                 nom VARCHAR(150) NOT NULL,
                 responsable VARCHAR(150) DEFAULT NULL,
                 description TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )");
 
-            $stmt = $pdo->prepare("INSERT INTO filieres (code_filiere, nom, responsable, description) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$code_filiere, $nom, $responsable, $description]);
-            
-            header("Location: filieres.php");
-            exit();
+            if ($_POST['action'] === 'ajouter_filiere') {
+                $stmt = $pdo->prepare("INSERT INTO filieres (code_filiere, nom, responsable, description) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$code_filiere, $nom, $responsable, $description]);
+                header("Location: filieres.php?success=1");
+                exit();
+            } elseif ($_POST['action'] === 'modifier_filiere' && !empty($id)) {
+                $stmt = $pdo->prepare("UPDATE filieres SET code_filiere = ?, nom = ?, responsable = ?, description = ? WHERE id = ?");
+                $stmt->execute([$code_filiere, $nom, $responsable, $description, $id]);
+                header("Location: filieres.php?success=2");
+                exit();
+            }
         } catch (PDOException $e) {
             $message = "Erreur : Ce code de filière existe déjà.";
         }
@@ -38,23 +44,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Récupération des filières
 $filieres = [];
 try {
-    $filieres = $pdo->query("SELECT * FROM filieres ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($recherche)) {
+        $stmt = $pdo->prepare("SELECT * FROM filieres WHERE nom LIKE :q OR code_filiere LIKE :q OR responsable LIKE :q ORDER BY id DESC");
+        $stmt->execute([':q' => "%$recherche%"]);
+        $filieres = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $filieres = $pdo->query("SELECT * FROM filieres ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
     $filieres = [];
 }
 
-// Données de démonstration conformes à la maquette (si la table est vide)
-if (count($filieres) === 0) {
-    $filieres = [
-        ['code_filiere' => 'INFO',  'nom' => 'Informatique', 'responsable' => 'Dr. Amadou Diallo', 'description' => 'Formation en développement logiciel et réseaux'],
-        ['code_filiere' => 'GEST',  'nom' => 'Gestion',      'responsable' => 'Pr. Fatou Seck',     'description' => 'Gestion des entreprises et comptabilité'],
-        ['code_filiere' => 'MARK',  'nom' => 'Marketing',    'responsable' => 'Dr. Ibrahima Ndiaye','description' => 'Marketing digital et communication'],
-        ['code_filiere' => 'DROIT', 'nom' => 'Droit',        'responsable' => 'Pr. Aïssatou Ba',    'description' => 'Droit des affaires et contentieux'],
-    ];
-}
 $total = count($filieres);
 ?>
 <!DOCTYPE html>
@@ -68,16 +70,11 @@ $total = count($filieres);
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
 
-    <!-- Sidebar Unifiée -->
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
-    <!-- Contenu Principal -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        
-        <!-- Header Supérieur Dynamique -->
         <?php include '../../includes/header.php'; ?>
 
-        <!-- Corps de la page -->
         <div class="flex-1 p-8 overflow-y-auto space-y-6">
             
             <?php if (!empty($message)): ?>
@@ -86,24 +83,21 @@ $total = count($filieres);
                 </div>
             <?php endif; ?>
 
-            <!-- Barre d'outils : Recherche (gauche) + Bouton Ajouter (droite) -->
             <div class="flex items-center justify-between">
-                <div class="relative w-80">
-                    <input type="text" placeholder="Rechercher une filière..." class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition">
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 pointer-events-none">
+                <form id="searchForm" action="filieres.php" method="GET" class="relative w-80">
+                    <input type="text" id="searchInput" name="q" value="<?= htmlspecialchars($recherche) ?>" placeholder="Rechercher une filière..." class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition" autocomplete="off">
+                    <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 hover:text-red-600">
                         <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                    </span>
-                </div>
-                <button onclick="toggleDrawer(true)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
-                    <span>Ajouter</span>
+                    </button>
+                </form>
+                <button onclick="openAddDrawer()" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    <span>Ajouter une filière</span>
                     <i class="fa-solid fa-plus text-xs"></i>
                 </button>
             </div>
 
-            <!-- Carte conteneur principale -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 
-                <!-- Sélecteur de vue (Tableau / Cartes) -->
                 <div class="flex justify-end px-4 py-3 border-b border-gray-100">
                     <div class="bg-gray-100 rounded-lg p-1 flex text-xs font-medium">
                         <button id="btn-table" type="button" onclick="setView('table')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition bg-white text-red-600 shadow-sm">
@@ -117,7 +111,6 @@ $total = count($filieres);
                     </div>
                 </div>
 
-                <!-- VUE TABLEAU -->
                 <div id="view-table" class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -130,7 +123,9 @@ $total = count($filieres);
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-sm">
-                            <?php foreach ($filieres as $f): ?>
+                            <?php if (empty($filieres)): ?>
+                                <tr><td colspan="5" class="py-6 px-6 text-gray-400 text-center">Aucune filière trouvée.</td></tr>
+                            <?php else: foreach ($filieres as $f): ?>
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-4 px-6">
                                     <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full"><?= htmlspecialchars($f['code_filiere']) ?></span>
@@ -139,16 +134,15 @@ $total = count($filieres);
                                 <td class="py-4 px-4 text-xs text-slate-500"><?= htmlspecialchars($f['responsable'] ?: 'Non assigné') ?></td>
                                 <td class="py-4 px-4 text-xs text-slate-500"><?= htmlspecialchars($f['description'] ?: '-') ?></td>
                                 <td class="py-4 px-6 text-right space-x-3">
-                                    <button class="text-slate-500 hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="text-slate-500 hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f) ?>)' class="text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $f['id'] ?>, '<?= htmlspecialchars($f['nom'], ENT_QUOTES) ?>', this.closest('tr'))" class="text-slate-500 hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
+                            <?php endforeach; endif; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- VUE CARTES -->
                 <div id="view-cards" class="hidden p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <?php foreach ($filieres as $f): ?>
@@ -156,8 +150,8 @@ $total = count($filieres);
                             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                                 <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded"><?= htmlspecialchars($f['code_filiere']) ?></span>
                                 <div class="flex items-center space-x-3 text-slate-500">
-                                    <button class="hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button class="hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f) ?>)' class="hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $f['id'] ?>, '<?= htmlspecialchars($f['nom'], ENT_QUOTES) ?>', this.closest('div.bg-white'))" class="hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
                             <div class="pt-3 space-y-3">
@@ -179,70 +173,53 @@ $total = count($filieres);
                     </div>
                 </div>
 
-                <!-- Pagination -->
                 <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
-                    <span>1–<?= $total ?> sur <?= $total ?></span>
-                    <div class="flex items-center space-x-3">
-                        <span>Page 1 sur 1</span>
-                        <div class="flex space-x-1">
-                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
-                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
-                        </div>
-                    </div>
+                    <span>Total : <?= $total ?> filière(s)</span>
                 </div>
 
             </div>
         </div>
     </main>
 
-    <!-- DRAWER LATÉRAL : NOUVELLE FILIÈRE -->
+    <!-- DRAWER LATÉRAL AJOUT / MODIFICATION -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
     
     <div id="drawer" class="fixed top-0 right-0 h-full w-[420px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
         <div>
             <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h3 class="font-bold text-base text-gray-800">Nouvelle filière</h3>
+                <h3 id="drawer-title" class="font-bold text-base text-gray-800">Nouvelle filière</h3>
                 <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
             </div>
 
-            <form action="filieres.php" method="POST" class="p-6 space-y-4">
-                <input type="hidden" name="action" value="ajouter_filiere">
+            <form id="filiereForm" action="filieres.php" method="POST" class="p-6 space-y-4">
+                <input type="hidden" id="form-action" name="action" value="ajouter_filiere">
+                <input type="hidden" id="filiere_id" name="id" value="">
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CODE*</label>
-                    <input type="text" name="code_filiere"  placeholder="INFO" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" id="code_filiere" name="code_filiere" placeholder="INFO" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NOM*</label>
-                    <div class="relative">
-                        <input type="text" name="nom"  placeholder="Informatique" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                            <i class="fa-regular fa-calendar text-xs"></i>
-                        </span>
-                    </div>
+                    <input type="text" id="nom" name="nom" placeholder="Informatique" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RESPONSABLE</label>
-                    <div class="relative">
-                        <input type="text" name="responsable" placeholder="Dr. Nom Prenom" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
-                        <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 pointer-events-none">
-                            <i class="fa-regular fa-calendar text-xs"></i>
-                        </span>
-                    </div>
+                    <input type="text" id="responsable" name="responsable" placeholder="Dr. Nom Prenom" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">DESCRIPTION</label>
-                    <textarea name="description" rows="3" placeholder="Description de la filière......" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600"></textarea>
+                    <textarea id="description" name="description" rows="3" placeholder="Description de la filière......" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600"></textarea>
                 </div>
 
                 <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
                     <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
                         Annuler
                     </button>
-                    <button type="submit" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
+                    <button type="submit" id="submit-btn" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
                         Ajouter la filière
                     </button>
                 </div>
@@ -250,8 +227,168 @@ $total = count($filieres);
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- MODALE DE SUPPRESSION FIGMA -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 w-[400px] shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 text-base">Confirmation de suppression</h3>
+            </div>
+            <p id="deleteModalMessage" class="text-xs text-gray-600 mb-6 leading-relaxed">
+                Voulez-vous vraiment effectuer cette suppression ?
+            </p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition">
+                    Annuler
+                </button>
+                <a id="deleteModalConfirmBtn" href="#" class="px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition shadow-sm">
+                    Supprimer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTAINER DES TOASTS NOTIFICATIONS -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3"></div>
+
     <script>
+        function showToast(message, type = 'success', onUndo = null) {
+            const container = document.getElementById('toastContainer');
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-[#00B67A]' : 'bg-[#DC2626]'; 
+            
+            const toast = document.createElement('div');
+            toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[340px]`;
+            
+            const iconSvg = isSuccess 
+                ? `<svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>`
+                : `<svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+
+            toast.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    ${iconSvg}
+                    <span class="text-sm font-semibold tracking-wide">${message}</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    ${onUndo ? `<button id="toastUndoBtn" class="text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-2.5 py-1 rounded-lg transition cursor-pointer">Annuler</button>` : ''}
+                    <button onclick="this.closest('div.flex').parentElement.remove()" class="text-white/80 hover:text-white transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-5', 'opacity-0'), 50);
+
+            if (onUndo) {
+                const undoBtn = toast.querySelector('#toastUndoBtn');
+                undoBtn.addEventListener('click', () => {
+                    clearTimeout(toast.dataset.timeoutId);
+                    onUndo();
+                    toast.remove();
+                });
+            }
+
+            const hideTimeout = setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.add('opacity-0', 'translate-y-5');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+
+            toast.dataset.timeoutId = hideTimeout;
+        }
+
+        let filiereToDeleteId = null;
+        let filiereRowElement = null;
+        let deletedFiliereData = null;
+
+        function openDeleteModalAsync(id, nomFiliere, rowElement) {
+            filiereToDeleteId = id;
+            filiereRowElement = rowElement;
+            
+            const modal = document.getElementById('deleteModal');
+            const msgEl = document.getElementById('deleteModalMessage');
+            const confirmBtn = document.getElementById('deleteModalConfirmBtn');
+
+            msgEl.textContent = `Voulez-vous vraiment supprimer la filière "${nomFiliere}" ?`;
+
+            confirmBtn.onclick = function(e) {
+                e.preventDefault();
+                closeDeleteModal();
+
+                // Appel vers action.php unifié
+                fetch('action.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'supprimer_filiere', id: filiereToDeleteId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        deletedFiliereData = data.data; 
+                        filiereRowElement.remove();
+
+                        showToast("Filière supprimée avec succès.", "error", () => {
+                            fetch('action.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'restaurer_filiere', data: deletedFiliereData })
+                            })
+                            .then(res => res.json())
+                            .then(restData => {
+                                if (restData.success) {
+                                    location.reload();
+                                } else {
+                                    alert("Erreur lors de la restauration.");
+                                }
+                            });
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(err => console.error("Erreur:", err));
+            };
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        const searchForm = document.getElementById('searchForm');
+
+        if (searchInput && searchForm) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => searchForm.submit(), 400);
+            });
+
+            window.addEventListener('DOMContentLoaded', () => {
+                if (searchInput.value.length > 0) {
+                    searchInput.focus();
+                    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                }
+            });
+        }
+
         function toggleDrawer(open) {
             const drawer = document.getElementById('drawer');
             const overlay = document.getElementById('drawer-overlay');
@@ -266,7 +403,29 @@ $total = count($filieres);
             }
         }
 
-        // Bascule entre la vue Tableau et la vue Cartes
+        function openAddDrawer() {
+            document.getElementById('drawer-title').textContent = "Nouvelle filière";
+            document.getElementById('form-action').value = "ajouter_filiere";
+            document.getElementById('filiere_id').value = "";
+            document.getElementById('submit-btn').textContent = "Ajouter la filière";
+            document.getElementById('filiereForm').reset();
+            toggleDrawer(true);
+        }
+
+        function openEditDrawer(filiere) {
+            document.getElementById('drawer-title').textContent = "Modifier la filière";
+            document.getElementById('form-action').value = "modifier_filiere";
+            document.getElementById('filiere_id').value = filiere.id;
+            document.getElementById('submit-btn').textContent = "Modifier la filière";
+
+            document.getElementById('code_filiere').value = filiere.code_filiere || '';
+            document.getElementById('nom').value = filiere.nom || '';
+            document.getElementById('responsable').value = filiere.responsable || '';
+            document.getElementById('description').value = filiere.description || '';
+
+            toggleDrawer(true);
+        }
+
         function setView(mode) {
             const isTable = mode === 'table';
             document.getElementById('view-table').classList.toggle('hidden', !isTable);
@@ -283,5 +442,18 @@ $total = count($filieres);
             });
         }
     </script>
+
+    <?php if (isset($_GET['success'])): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                <?php if ($_GET['success'] == '2'): ?>
+                    showToast("Filière modifiée avec succès.", "success");
+                <?php elseif ($_GET['success'] == '1'): ?>
+                    showToast("Filière ajoutée avec succès.", "success");
+                <?php endif; ?>
+            });
+        </script>
+    <?php endif; ?>
+
 </body>
 </html>

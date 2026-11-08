@@ -5,54 +5,140 @@ $descriptionPage = 'Gérez les inscriptions et comptes étudiants';
 require_once '../../config/db.php';
 
 $tab = $_GET['tab'] ?? 'etudiants';
+$recherche = trim($_GET['q'] ?? '');
 $message = "";
 
-// Traitement de l'ajout d'un étudiant
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter_etudiant') {
-    $matricule = trim($_POST['matricule']);
-    $nom = trim($_POST['nom']);
-    $prenom = trim($_POST['prenom']);
-    $date_naissance = trim($_POST['date_naissance']);
-    $sexe = trim($_POST['sexe']);
-    $telephone = trim($_POST['telephone']);
-    $adresse = trim($_POST['adresse']);
-    $classe_id = !empty($_POST['classe_id']) ? $_POST['classe_id'] : null;
+$limiteParPage = 5;
+$pageActuelleNum = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($pageActuelleNum < 1) $pageActuelleNum = 1;
+$debut = ($pageActuelleNum - 1) * $limiteParPage;
 
-    if (!empty($matricule) && !empty($nom) && !empty($prenom)) {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO etudiants (matricule, nom, prenom, date_naissance, sexe, telephone, adresse, classe_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$matricule, $nom, $prenom, $date_naissance, $sexe, $telephone, $adresse, $classe_id]);
-            header("Location: etudiants.php?tab=etudiants");
-            exit();
-        } catch (PDOException $e) {
-            $message = "Erreur : Ce matricule existe déjà.";
+// Traitement POST global (Étudiants et Utilisateurs)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $actionPost = $_POST['action'];
+
+    if ($actionPost === 'ajouter_etudiant' || $actionPost === 'modifier_etudiant') {
+        $id = $_POST['id'] ?? null;
+        $matricule = trim($_POST['matricule'] ?? '');
+        $nom = trim($_POST['nom'] ?? '');
+        $prenom = trim($_POST['prenom'] ?? '');
+        $date_naissance = trim($_POST['date_naissance'] ?? '');
+        $sexe = trim($_POST['sexe'] ?? '');
+        $telephone = trim($_POST['telephone'] ?? '');
+        $adresse = trim($_POST['adresse'] ?? '');
+        $classe_id = !empty($_POST['classe_id']) ? $_POST['classe_id'] : null;
+
+        $erreurs = [];
+        if (empty($matricule)) $erreurs[] = "Le matricule est obligatoire.";
+        if (empty($nom)) $erreurs[] = "Le nom est obligatoire.";
+        if (empty($prenom)) $erreurs[] = "Le prénom est obligatoire.";
+        if (empty($telephone)) {
+            $erreurs[] = "Le numéro de téléphone est obligatoire.";
+        } else {
+            $phoneRegex = '/^(?:\+221)?\s*(?:30|33|70|75|76|77|78)\s*\d{3}\s*\d{2}\s*\d{2}$/';
+            if (!preg_match($phoneRegex, $telephone)) {
+                $erreurs[] = "Le format du numéro sénégalais est invalide.";
+            }
         }
-    } else {
-        $message = "Veuillez remplir les champs obligatoires (*).";
+        if (empty($classe_id)) $erreurs[] = "Veuillez sélectionner une classe.";
+
+        if (empty($erreurs)) {
+            try {
+                if ($actionPost === 'ajouter_etudiant') {
+                    $stmt = $pdo->prepare("INSERT INTO etudiants (matricule, nom, prenom, date_naissance, sexe, telephone, adresse, classe_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$matricule, $nom, $prenom, $date_naissance, $sexe, $telephone, $adresse, $classe_id]);
+                    header("Location: etudiants.php?tab=etudiants&success=1");
+                    exit();
+                } elseif ($actionPost === 'modifier_etudiant' && !empty($id)) {
+                    $stmt = $pdo->prepare("UPDATE etudiants SET matricule = ?, nom = ?, prenom = ?, date_naissance = ?, sexe = ?, telephone = ?, adresse = ?, classe_id = ? WHERE id = ?");
+                    $stmt->execute([$matricule, $nom, $prenom, $date_naissance, $sexe, $telephone, $adresse, $classe_id, $id]);
+                    header("Location: etudiants.php?tab=etudiants&success=2");
+                    exit();
+                }
+            } catch (PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    $message = "Erreur : Ce matricule existe déjà dans la base de données.";
+                } else {
+                    $message = "Erreur technique lors de l'enregistrement de l'étudiant.";
+                }
+            }
+        } else {
+            $message = implode("<br>", $erreurs);
+        }
+    } 
+    elseif ($actionPost === 'ajouter_utilisateur') {
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (empty($email) || empty($password)) {
+            $message = "L'email et le mot de passe sont obligatoires pour créer un compte.";
+        } else {
+            try {
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $stmt = $pdo->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
+                $stmt->execute([$email, $hashedPassword]);
+                header("Location: etudiants.php?tab=utilisateurs&success=3");
+                exit();
+            } catch (PDOException $e) {
+                if ($e->getCode() === '23000') {
+                    $message = "Erreur : Cet email est déjà associé à un compte.";
+                } else {
+                    $message = "Erreur technique lors de la création du compte.";
+                }
+            }
+        }
     }
 }
 
-// Récupération des données
+$totalTotal = 0;
 $etudiants = [];
 $utilisateurs = [];
 $classes = [];
-try {
-    $etudiants = $pdo->query("SELECT e.*, c.code_classe, c.nom as nom_classe, u.email as user_email 
-                              FROM etudiants e 
-                              LEFT JOIN classes c ON e.classe_id = c.id 
-                              LEFT JOIN users u ON e.user_id = u.id 
-                              ORDER BY e.id DESC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $etudiants = [];
-}
 
 try {
-    $utilisateurs = $pdo->query("SELECT u.*, e.matricule as etudiant_matricule 
-                                 FROM users u 
-                                 LEFT JOIN etudiants e ON e.user_id = u.id 
-                                 ORDER BY u.id ASC")->fetchAll(PDO::FETCH_ASSOC);
+    if ($tab === 'utilisateurs') {
+        $sqlCount = "SELECT COUNT(*) FROM users WHERE email LIKE :q1";
+        $stmtCount = $pdo->prepare($sqlCount);
+        $stmtCount->execute([':q1' => "%$recherche%"]);
+        $totalTotal = $stmtCount->fetchColumn();
+
+        $sql = "SELECT * FROM users WHERE email LIKE :q1 ORDER BY id ASC LIMIT :limite OFFSET :debut";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':q1', "%$recherche%", PDO::PARAM_STR);
+    } else {
+        $sqlCount = "SELECT COUNT(*) FROM etudiants WHERE nom LIKE :q1 OR prenom LIKE :q2 OR matricule LIKE :q3 OR telephone LIKE :q4";
+        $stmtCount = $pdo->prepare($sqlCount);
+        $stmtCount->execute([
+            ':q1' => "%$recherche%",
+            ':q2' => "%$recherche%",
+            ':q3' => "%$recherche%",
+            ':q4' => "%$recherche%"
+        ]);
+        $totalTotal = $stmtCount->fetchColumn();
+
+        $sql = "SELECT e.*, c.code_classe, c.nom as nom_classe 
+                FROM etudiants e 
+                LEFT JOIN classes c ON e.classe_id = c.id 
+                WHERE e.nom LIKE :q1 OR e.prenom LIKE :q2 OR e.matricule LIKE :q3 OR e.telephone LIKE :q4 
+                ORDER BY e.id DESC LIMIT :limite OFFSET :debut";
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindValue(':q1', "%$recherche%", PDO::PARAM_STR);
+        $stmt->bindValue(':q2', "%$recherche%", PDO::PARAM_STR);
+        $stmt->bindValue(':q3', "%$recherche%", PDO::PARAM_STR);
+        $stmt->bindValue(':q4', "%$recherche%", PDO::PARAM_STR);
+    }
+
+    $stmt->bindValue(':limite', $limiteParPage, PDO::PARAM_INT);
+    $stmt->bindValue(':debut', $debut, PDO::PARAM_INT);
+    $stmt->execute();
+
+    if ($tab === 'utilisateurs') {
+        $utilisateurs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        $etudiants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
-    $utilisateurs = [];
+    $message = "Erreur de chargement des données.";
 }
 
 try {
@@ -61,31 +147,16 @@ try {
     $classes = [];
 }
 
-// Données de démonstration conformes aux maquettes (si les tables sont vides)
-if (count($etudiants) === 0) {
-    $etudiants = [
-        ['matricule' => 'ESP221-2024-001', 'nom' => 'Diallo', 'prenom' => 'Mamadou', 'date_naissance' => '15/03/2002', 'sexe' => 'Masculin', 'telephone' => '+221 77 123 45 67', 'adresse' => 'Dakar, Médina',  'code_classe' => 'INFO-L1-A', 'user_email' => 'etudiant1@esp221.sn'],
-        ['matricule' => 'ESP221-2024-002', 'nom' => 'Sall',   'prenom' => 'Aminata', 'date_naissance' => '22/07/2003', 'sexe' => 'Féminin',  'telephone' => '+221 78 234 56 78', 'adresse' => 'Dakar, Plateau', 'code_classe' => 'INFO-L1-A', 'user_email' => 'etudiant2@esp221.sn'],
-        ['matricule' => 'ESP221-2024-003', 'nom' => 'Ndiaye', 'prenom' => 'Oumar',   'date_naissance' => '08/11/2001', 'sexe' => 'Masculin', 'telephone' => '+221 76 345 67 89', 'adresse' => 'Thiès, Centre',  'code_classe' => 'INFO-L2-A', 'user_email' => 'etudiant3@esp221.sn'],
-        ['matricule' => 'ESP221-2024-004', 'nom' => 'Faye',   'prenom' => 'Khady',   'date_naissance' => '15/03/2002', 'sexe' => 'Masculin', 'telephone' => '+221 77 123 45 67', 'adresse' => 'Dakar, Médina',  'code_classe' => 'INFO-L1-A', 'user_email' => null],
-        ['matricule' => 'ESP221-2024-005', 'nom' => 'Mbaye',  'prenom' => 'Serigne', 'date_naissance' => '15/03/2002', 'sexe' => 'Masculin', 'telephone' => '+221 77 123 45 67', 'adresse' => 'Dakar, Médina',  'code_classe' => 'INFO-L1-A', 'user_email' => null],
-    ];
-}
-if (count($utilisateurs) === 0) {
-    $utilisateurs = [];
-    for ($i = 0; $i <= 5; $i++) {
-        $utilisateurs[] = ['id' => $i, 'email' => 'secretaire@esp221.sn', 'sexe' => 'Féminin', 'adresse' => 'Dakar, Plateau', 'telephone' => '+221 33 000 00 00', 'etudiant_matricule' => null];
-    }
-}
-
-// Mise en forme de la date (AAAA-MM-JJ -> JJ/MM/AAAA)
 function fmtDate($d) {
     if (empty($d)) return '-';
     if (preg_match('/^\d{4}-\d{2}-\d{2}/', $d)) return date('d/m/Y', strtotime($d));
     return $d;
 }
 
-$total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
+$totalPages = ceil($totalTotal / $limiteParPage);
+if ($totalPages < 1) $totalPages = 1;
+$debutAffichage = $totalTotal > 0 ? $debut + 1 : 0;
+$finAffichage = min($debut + $limiteParPage, $totalTotal);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -98,25 +169,13 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
 </head>
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
 
-    <!-- Sidebar Unifiée -->
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
-    <!-- Contenu Principal -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-        
-        <!-- Header Supérieur Dynamique -->
         <?php include '../../includes/header.php'; ?>
 
-        <!-- Corps de la page -->
         <div class="flex-1 p-8 overflow-y-auto space-y-6">
-            
-            <?php if (!empty($message)): ?>
-                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
-                    <?= htmlspecialchars($message) ?>
-                </div>
-            <?php endif; ?>
 
-            <!-- Système d'onglets -->
             <div class="flex items-center space-x-2 border-b border-gray-200 pb-2">
                 <a href="etudiants.php?tab=etudiants" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= ($tab !== 'utilisateurs') ? 'bg-red-50 text-red-600' : 'text-slate-500 hover:text-gray-800' ?>">
                     Étudiants
@@ -126,31 +185,34 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
                 </a>
             </div>
 
-            <!-- Barre d'outils : Recherche (gauche) + Bouton Ajouter (droite) -->
             <div class="flex items-center justify-between">
-                <div class="relative w-80">
-                    <input type="text" placeholder="<?= ($tab !== 'utilisateurs') ? 'Rechercher un étudiant...' : 'Rechercher un utilisateur...' ?>" class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition">
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 pointer-events-none">
+                <form id="searchForm" action="etudiants.php" method="GET" class="relative w-80">
+                    <input type="hidden" name="tab" value="<?= htmlspecialchars($tab) ?>">
+                    <input type="text" id="searchInput" name="q" value="<?= htmlspecialchars($recherche) ?>" placeholder="<?= ($tab !== 'utilisateurs') ? 'Rechercher un étudiant...' : 'Rechercher un compte...' ?>" class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition" autocomplete="off">
+                    <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 hover:text-red-600">
                         <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                    </span>
-                </div>
-                <button onclick="toggleDrawer(true)" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    </button>
+                </form>
+                <button onclick="<?= ($tab !== 'utilisateurs') ? 'openAddStudentDrawer()' : 'openAddUserDrawer()' ?>" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm cursor-pointer">
                     <span><?= ($tab !== 'utilisateurs') ? 'Ajouter un étudiant' : 'Ajouter un utilisateur' ?></span>
                     <i class="fa-solid fa-plus text-xs"></i>
                 </button>
             </div>
 
-            <!-- Carte conteneur principale -->
+            <?php if (!empty($message)): ?>
+                <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
+                    <?= $message ?>
+                </div>
+            <?php endif; ?>
+
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                
-                <!-- Sélecteur de vue (Tableau / Cartes) -->
                 <div class="flex justify-end px-4 py-3 border-b border-gray-100">
                     <div class="bg-gray-100 rounded-lg p-1 flex text-xs font-medium">
-                        <button id="btn-table" type="button" onclick="setView('table')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition bg-white text-red-600 shadow-sm">
+                        <button id="btn-table" type="button" onclick="setView('table')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition bg-white text-red-600 shadow-sm cursor-pointer">
                             <i class="fa-solid fa-table"></i>
                             <span>Tableau</span>
                         </button>
-                        <button id="btn-cards" type="button" onclick="setView('cards')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition text-gray-500 hover:text-gray-800">
+                        <button id="btn-cards" type="button" onclick="setView('cards')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition text-gray-500 hover:text-gray-800 cursor-pointer">
                             <i class="fa-solid fa-border-all"></i>
                             <span>Cartes</span>
                         </button>
@@ -158,8 +220,7 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
                 </div>
 
                 <?php if ($tab !== 'utilisateurs'): ?>
-
-                <!-- VUE TABLEAU : ÉTUDIANTS -->
+                <!-- VUE TABLEAU ÉTUDIANTS -->
                 <div id="view-table" class="overflow-x-auto">
                     <table class="w-full text-center border-collapse">
                         <thead>
@@ -172,12 +233,15 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
                                 <th class="py-4 px-4 font-semibold">Téléphone</th>
                                 <th class="py-4 px-4 font-semibold">Adresse</th>
                                 <th class="py-4 px-4 font-semibold">Classe</th>
-                                <th class="py-4 px-4 font-semibold">Utilisateur</th>
                                 <th class="py-4 px-4 font-semibold">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-xs">
-                            <?php foreach ($etudiants as $e): ?>
+                            <?php if (empty($etudiants)): ?>
+                                <tr><td colspan="9" class="py-6 text-gray-400">Aucun étudiant trouvé.</td></tr>
+                            <?php else: foreach ($etudiants as $e): 
+                                $jsonEtudiant = json_encode($e, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+                            ?>
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-4 px-4 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($e['matricule']) ?></td>
                                 <td class="py-4 px-4 text-sm font-bold text-gray-900"><?= htmlspecialchars($e['nom']) ?></td>
@@ -187,244 +251,388 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
                                 <td class="py-4 px-4 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($e['telephone'] ?? '-') ?></td>
                                 <td class="py-4 px-4 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($e['adresse'] ?? '-') ?></td>
                                 <td class="py-4 px-4"><span class="inline-block bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full font-medium text-[11px]"><?= htmlspecialchars($e['code_classe'] ?? '-') ?></span></td>
-                                <td class="py-4 px-4 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($e['user_email'] ?? 'Non associé') ?></td>
                                 <td class="py-4 px-4 space-x-3 whitespace-nowrap">
-                                    <button class="text-slate-500 hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="text-slate-500 hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= $jsonEtudiant ?>)' class="text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $e['id'] ?>, '<?= htmlspecialchars($e['prenom'] . ' ' . $e['nom'], ENT_QUOTES) ?>', this.closest('tr'), 'supprimer_etudiant')" class="text-slate-500 hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
+                            <?php endforeach; endif; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- VUE CARTES : ÉTUDIANTS -->
+                <!-- VUE CARTES ÉTUDIANTS -->
                 <div id="view-cards" class="hidden p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <?php foreach ($etudiants as $e): ?>
+                        <?php foreach ($etudiants as $e): 
+                            $jsonEtudiantCard = json_encode($e, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+                        ?>
                         <div class="bg-white border border-gray-100 rounded-xl shadow-md p-4">
                             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
                                 <span class="text-sm text-gray-800"><?= htmlspecialchars($e['matricule']) ?></span>
                                 <div class="flex items-center space-x-3 text-slate-500">
-                                    <button class="hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button class="hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= $jsonEtudiantCard ?>)' class="hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $e['id'] ?>, '<?= htmlspecialchars($e['prenom'] . ' ' . $e['nom'], ENT_QUOTES) ?>', this.closest('div.bg-white'), 'supprimer_etudiant')" class="hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
                             <div class="pt-3 space-y-3">
                                 <div>
-                                    <p class="text-xs text-slate-500">Nom</p>
-                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($e['nom']) ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Prénom</p>
-                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($e['prenom']) ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Date de naissance</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars(fmtDate($e['date_naissance'] ?? '')) ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">Sexe</p>
-                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px]"><?= htmlspecialchars($e['sexe'] ?? '-') ?></span>
+                                    <p class="text-xs text-slate-500">Nom & Prénom</p>
+                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($e['nom'] . ' ' . $e['prenom']) ?></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Téléphone</p>
                                     <p class="text-xs text-slate-600"><?= htmlspecialchars($e['telephone'] ?? '-') ?></p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-slate-500">Adresse</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($e['adresse'] ?? '-') ?></p>
-                                </div>
-                                <div>
                                     <p class="text-xs text-slate-500 mb-1">Classe</p>
                                     <span class="inline-block bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-[11px] font-medium"><?= htmlspecialchars($e['code_classe'] ?? '-') ?></span>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Utilisateur</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($e['user_email'] ?? 'Non associé') ?></p>
                                 </div>
                             </div>
                         </div>
                         <?php endforeach; ?>
                     </div>
                 </div>
-
                 <?php else: ?>
-
-                <!-- VUE TABLEAU : COMPTES -->
+                <!-- VUE TABLEAU COMPTES -->
                 <div id="view-table" class="overflow-x-auto">
                     <table class="w-full text-center border-collapse">
                         <thead>
                             <tr class="bg-gray-200 text-slate-500 text-[11px] uppercase tracking-wider">
                                 <th class="py-4 px-4 font-semibold">ID utilisateur</th>
                                 <th class="py-4 px-4 font-semibold">E-mail</th>
-                                <th class="py-4 px-4 font-semibold">Mot de passe</th>
-                                <th class="py-4 px-4 font-semibold">Sexe</th>
-                                <th class="py-4 px-4 font-semibold">Adresse</th>
-                                <th class="py-4 px-4 font-semibold">Téléphone</th>
-                                <th class="py-4 px-4 font-semibold">Associé</th>
                                 <th class="py-4 px-4 font-semibold">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 text-xs">
-                            <?php foreach ($utilisateurs as $u): ?>
+                            <?php if (empty($utilisateurs)): ?>
+                                <tr><td colspan="3" class="py-6 text-gray-400">Aucun utilisateur trouvé.</td></tr>
+                            <?php else: foreach ($utilisateurs as $u): ?>
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-5 px-4 text-sm text-gray-800"><?= htmlspecialchars($u['id']) ?></td>
                                 <td class="py-5 px-4 font-bold text-gray-900"><?= htmlspecialchars($u['email']) ?></td>
-                                <td class="py-5 px-4 text-slate-500">••••••••</td>
-                                <td class="py-5 px-4"><span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px]"><?= htmlspecialchars($u['sexe'] ?? '-') ?></span></td>
-                                <td class="py-5 px-4 font-bold text-slate-600 whitespace-nowrap"><?= htmlspecialchars($u['adresse'] ?? '-') ?></td>
-                                <td class="py-5 px-4 text-slate-500 whitespace-nowrap"><?= htmlspecialchars($u['telephone'] ?? '-') ?></td>
-                                <td class="py-5 px-4"><span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px]"><?= htmlspecialchars($u['etudiant_matricule'] ?? 'Aucun') ?></span></td>
                                 <td class="py-5 px-4 space-x-3 whitespace-nowrap">
-                                    <button class="text-slate-500 hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="text-slate-500 hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $u['id'] ?>, '<?= htmlspecialchars($u['email'], ENT_QUOTES) ?>', this.closest('tr'), 'supprimer_utilisateur')" class="text-slate-500 hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
                                 </td>
                             </tr>
-                            <?php endforeach; ?>
+                            <?php endforeach; endif; ?>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- VUE CARTES : COMPTES -->
+                <!-- VUE CARTES COMPTES -->
                 <div id="view-cards" class="hidden p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <?php foreach ($utilisateurs as $u): ?>
+                        <?php if (empty($utilisateurs)): ?>
+                            <p class="text-gray-400 text-xs">Aucun utilisateur trouvé.</p>
+                        <?php else: foreach ($utilisateurs as $u): ?>
                         <div class="bg-white border border-gray-100 rounded-xl shadow-md p-4">
                             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                                <span class="text-sm text-gray-800">#<?= htmlspecialchars($u['id']) ?></span>
+                                <span class="text-xs font-bold text-gray-500">ID : #<?= $u['id'] ?></span>
                                 <div class="flex items-center space-x-3 text-slate-500">
-                                    <button class="hover:text-blue-600 transition" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button class="hover:text-red-600 transition" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= $u['id'] ?>, '<?= htmlspecialchars($u['email'], ENT_QUOTES) ?>', this.closest('div.bg-white'), 'supprimer_utilisateur')" class="hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
-                            <div class="pt-3 space-y-3">
+                            <div class="pt-3 space-y-2">
                                 <div>
-                                    <p class="text-xs text-slate-500">E-mail</p>
+                                    <p class="text-xs text-slate-500">Adresse E-mail</p>
                                     <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($u['email']) ?></p>
                                 </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">Sexe</p>
-                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px]"><?= htmlspecialchars($u['sexe'] ?? '-') ?></span>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Adresse</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($u['adresse'] ?? '-') ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500">Téléphone</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($u['telephone'] ?? '-') ?></p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-slate-500 mb-1">Associé</p>
-                                    <span class="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-[11px]"><?= htmlspecialchars($u['etudiant_matricule'] ?? 'Aucun') ?></span>
-                                </div>
                             </div>
                         </div>
-                        <?php endforeach; ?>
+                        <?php endforeach; endif; ?>
                     </div>
                 </div>
-
                 <?php endif; ?>
 
-                <!-- Pagination -->
                 <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
-                    <span>1–<?= $total ?> sur <?= $total ?></span>
+                    <span><?= $debutAffichage ?>–<?= $finAffichage ?> sur <?= $totalTotal ?></span>
+                    
+                    <?php if ($totalTotal > 5): ?>
                     <div class="flex items-center space-x-3">
-                        <span>Page 1 sur 1</span>
+                        <span>Page <?= $pageActuelleNum ?> sur <?= $totalPages ?></span>
                         <div class="flex space-x-1">
-                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
-                            <button class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                            <?php if ($pageActuelleNum > 1): ?>
+                                <a href="etudiants.php?tab=<?= $tab ?>&q=<?= urlencode($recherche) ?>&page=<?= $pageActuelleNum - 1 ?>" class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition"><i class="fa-solid fa-chevron-left text-[10px]"></i></a>
+                            <?php else: ?>
+                                <span class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-left text-[10px]"></i></span>
+                            <?php endif; ?>
+
+                            <?php if ($pageActuelleNum < $totalPages): ?>
+                                <a href="etudiants.php?tab=<?= $tab ?>&q=<?= urlencode($recherche) ?>&page=<?= $pageActuelleNum + 1 ?>" class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 transition"><i class="fa-solid fa-chevron-right text-[10px]"></i></a>
+                            <?php else: ?>
+                                <span class="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg text-gray-300 cursor-not-allowed"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                            <?php endif; ?>
                         </div>
                     </div>
+                    <?php endif; ?>
                 </div>
 
             </div>
         </div>
     </main>
 
-    <!-- DRAWER LATÉRAL -->
+    <!-- DRAWER LATÉRAL AJOUT / MODIFICATION -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
     
     <div id="drawer" class="fixed top-0 right-0 h-full w-[440px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
         <div>
             <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h3 class="font-bold text-base text-gray-800">Nouvelle etudiant</h3>
-                <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+                <h3 id="drawer-title" class="font-bold text-base text-gray-800">Nouvel étudiant</h3>
+                <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
             </div>
 
-            <form action="etudiants.php?tab=etudiants" method="POST" class="p-6 space-y-4">
-                <input type="hidden" name="action" value="ajouter_etudiant">
+            <form id="addStudentForm" action="etudiants.php?tab=<?= $tab ?>" method="POST" class="p-6 space-y-4" onsubmit="return validateForm(event)">
+                <input type="hidden" id="form-action" name="action" value="ajouter_etudiant">
+                <input type="hidden" id="etudiant_id" name="id" value="">
                 
-                <h4 class="text-xs font-bold text-red-600 uppercase tracking-wider">Information etudiant</h4>
+                <div id="fields-etudiant" class="space-y-4">
+                    <h4 class="text-xs font-bold text-red-600 uppercase tracking-wider">Information étudiant</h4>
 
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matricule</label>
-                    <input type="text" name="matricule"  placeholder="ESP221-2024-007" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Matricule*</label>
+                        <input type="text" id="matricule" name="matricule" placeholder="ESP221-2024-007" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <p id="error-matricule" class="text-xs text-red-500 mt-1 hidden"></p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom*</label>
+                            <input type="text" id="nom" name="nom" placeholder="Diallo" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <p id="error-nom" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Prénom*</label>
+                            <input type="text" id="prenom" name="prenom" placeholder="Mamadou" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                            <p id="error-prenom" class="text-xs text-red-500 mt-1 hidden"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Date de naissance</label>
+                        <input type="date" id="date_naissance" name="date_naissance" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Sexe</label>
+                        <select id="sexe" name="sexe" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                            <option value="Masculin">Masculin</option>
+                            <option value="Féminin">Féminin</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Téléphone*</label>
+                        <input type="text" id="telephone" name="telephone" placeholder="+221 77 123 45 67" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <p id="error-telephone" class="text-xs text-red-500 mt-1 hidden"></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Adresse</label>
+                        <input type="text" id="adresse" name="adresse" placeholder="Ville, Quartier" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Classe*</label>
+                        <select id="classe_id" name="classe_id" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
+                            <option value="">Sélectionner une classe</option>
+                            <?php foreach ($classes as $c): ?>
+                                <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p id="error-classe" class="text-xs text-red-500 mt-1 hidden"></p>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <div id="fields-utilisateur" class="space-y-4 hidden">
+                    <h4 class="text-xs font-bold text-red-600 uppercase tracking-wider">Information compte utilisateur</h4>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nom*</label>
-                        <input type="text" name="nom"  placeholder="Diallo" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Adresse E-mail*</label>
+                        <input type="email" id="user_email" name="email" placeholder="utilisateur@esp221.sn" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Prénom*</label>
-                        <input type="text" name="prenom"  placeholder="Mamadou" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Mot de passe*</label>
+                        <input type="password" id="user_password" name="password" placeholder="••••••••" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
                     </div>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Date de naissance</label>
-                    <input type="date" name="date_naissance" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Sexe</label>
-                    <select name="sexe" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
-                        <option value="Masculin">Masculin</option>
-                        <option value="Féminin">Féminin</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Téléphone</label>
-                    <input type="text" name="telephone" placeholder="+221 77 000 00 00" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Adresse</label>
-                    <input type="text" name="adresse" placeholder="Ville, Quartier" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Classe*</label>
-                    <select name="classe_id"  class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-red-600">
-                        <option value="">Sélectionner une classe</option>
-                        <?php foreach ($classes as $c): ?>
-                            <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <p class="text-[11px] text-gray-400 italic pt-1">
-                    Le compte utilisateur est facultatif. Créez-le ou associez-le depuis l'onglet Utilisateurs.
-                </p>
 
                 <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                    <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
+                    <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition cursor-pointer">
                         Annuler
                     </button>
-                    <button type="submit" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
-                        Ajouter l'étudiant
+                    <button type="submit" id="submit-btn" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm cursor-pointer">
+                        Ajouter
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- MODALE DE SUPPRESSION FIGMA -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-6 w-[400px] shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="flex items-center space-x-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 text-base">Confirmation de suppression</h3>
+            </div>
+            <p id="deleteModalMessage" class="text-xs text-gray-600 mb-6 leading-relaxed">
+                Voulez-vous vraiment effectuer cette suppression ?
+            </p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg hover:bg-gray-200 transition cursor-pointer">
+                    Annuler
+                </button>
+                <button id="deleteModalConfirmBtn" type="button" class="px-4 py-2 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-700 transition shadow-sm cursor-pointer">
+                    Supprimer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTAINER DES TOASTS NOTIFICATIONS -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3"></div>
+
     <script>
+        function showToast(message, type = 'success', onUndo = null) {
+            const container = document.getElementById('toastContainer');
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-[#00B67A]' : 'bg-[#DC2626]'; 
+            
+            const toast = document.createElement('div');
+            toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[340px]`;
+            
+            const iconSvg = isSuccess 
+                ? `<svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>`
+                : `<svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+
+            toast.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    ${iconSvg}
+                    <span class="text-sm font-semibold tracking-wide">${message}</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    ${onUndo ? `<button id="toastUndoBtn" class="text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-2.5 py-1 rounded-lg transition cursor-pointer">Annuler</button>` : ''}
+                    <button onclick="this.closest('div.flex').parentElement.remove()" class="text-white/80 hover:text-white transition-colors cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-5', 'opacity-0'), 50);
+
+            if (onUndo) {
+                const undoBtn = toast.querySelector('#toastUndoBtn');
+                undoBtn.addEventListener('click', () => {
+                    clearTimeout(toast.dataset.timeoutId);
+                    onUndo();
+                    toast.remove();
+                });
+            }
+
+            const hideTimeout = setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.add('opacity-0', 'translate-y-5');
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+
+            toast.dataset.timeoutId = hideTimeout;
+        }
+
+        let targetToDeleteId = null;
+        let rowElement = null;
+        let deletedData = null;
+
+        function openDeleteModalAsync(id, itemName, element, actionType) {
+            targetToDeleteId = id;
+            rowElement = element;
+            
+            const modal = document.getElementById('deleteModal');
+            const msgEl = document.getElementById('deleteModalMessage');
+            const confirmBtn = document.getElementById('deleteModalConfirmBtn');
+
+            msgEl.textContent = `Voulez-vous vraiment supprimer "${itemName}" ?`;
+
+            confirmBtn.onclick = function() {
+                closeDeleteModal();
+
+                fetch('action.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: actionType, id: targetToDeleteId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        deletedData = data.data; 
+                        if (rowElement) rowElement.remove();
+
+                        const isStudent = actionType === 'supprimer_etudiant';
+                        const isUser = actionType === 'supprimer_utilisateur';
+                        const restoreAction = isStudent ? 'restaurer_etudiant' : (isUser ? 'restaurer_utilisateur' : null);
+
+                        showToast("Élément supprimé avec succès.", "error", restoreAction ? () => {
+                            fetch('action.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: restoreAction, data: deletedData })
+                            })
+                            .then(res => res.json())
+                            .then(restData => {
+                                if (restData.success) {
+                                    location.reload();
+                                } else {
+                                    alert("Erreur lors de la restauration.");
+                                }
+                            })
+                            .catch(() => alert("Erreur réseau lors de la tentative de restauration."));
+                        } : null);
+                    } else {
+                        alert(data.message || "Erreur lors de la suppression.");
+                    }
+                })
+                .catch(() => alert("Erreur réseau. Impossible de contacter le serveur."));
+            };
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+                modal.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.remove('scale-100');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        let searchTimeout;
+        const searchInput = document.getElementById('searchInput');
+        const searchForm = document.getElementById('searchForm');
+
+        if (searchInput && searchForm) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => searchForm.submit(), 400);
+            });
+
+            window.addEventListener('DOMContentLoaded', () => {
+                if (searchInput.value.length > 0) {
+                    searchInput.focus();
+                    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+                }
+            });
+        }
+
         function toggleDrawer(open) {
             const drawer = document.getElementById('drawer');
             const overlay = document.getElementById('drawer-overlay');
@@ -439,22 +647,158 @@ $total = ($tab === 'utilisateurs') ? count($utilisateurs) : count($etudiants);
             }
         }
 
-        // Bascule entre la vue Tableau et la vue Cartes
+        function openAddStudentDrawer() {
+            document.getElementById('drawer-title').textContent = "Nouvel étudiant";
+            document.getElementById('form-action').value = "ajouter_etudiant";
+            document.getElementById('etudiant_id').value = "";
+            document.getElementById('submit-btn').textContent = "Ajouter";
+            
+            document.getElementById('fields-etudiant').classList.remove('hidden');
+            document.getElementById('fields-utilisateur').classList.add('hidden');
+            document.getElementById('addStudentForm').reset();
+            toggleDrawer(true);
+        }
+
+        function openAddUserDrawer() {
+            document.getElementById('drawer-title').textContent = "Nouvel utilisateur";
+            document.getElementById('form-action').value = "ajouter_utilisateur";
+            document.getElementById('submit-btn').textContent = "Créer le compte";
+            
+            document.getElementById('fields-etudiant').classList.add('hidden');
+            document.getElementById('fields-utilisateur').classList.remove('hidden');
+            document.getElementById('addStudentForm').reset();
+            toggleDrawer(true);
+        }
+
+        function openEditDrawer(etudiant) {
+            document.getElementById('drawer-title').textContent = "Modifier l'étudiant";
+            document.getElementById('form-action').value = "modifier_etudiant";
+            document.getElementById('etudiant_id').value = etudiant.id;
+            document.getElementById('submit-btn').textContent = "Modifier";
+
+            document.getElementById('fields-etudiant').classList.remove('hidden');
+            document.getElementById('fields-utilisateur').classList.add('hidden');
+
+            document.getElementById('matricule').value = etudiant.matricule || '';
+            document.getElementById('nom').value = etudiant.nom || '';
+            document.getElementById('prenom').value = etudiant.prenom || '';
+            document.getElementById('date_naissance').value = etudiant.date_naissance || '';
+            document.getElementById('sexe').value = etudiant.sexe || 'Masculin';
+            document.getElementById('telephone').value = etudiant.telephone || '';
+            document.getElementById('adresse').value = etudiant.adresse || '';
+            document.getElementById('classe_id').value = etudiant.classe_id || '';
+
+            toggleDrawer(true);
+        }
+
         function setView(mode) {
             const isTable = mode === 'table';
-            document.getElementById('view-table').classList.toggle('hidden', !isTable);
-            document.getElementById('view-cards').classList.toggle('hidden', isTable);
+            const viewTable = document.getElementById('view-table');
+            const viewCards = document.getElementById('view-cards');
+            
+            if (viewTable) viewTable.classList.toggle('hidden', !isTable);
+            if (viewCards) viewCards.classList.toggle('hidden', isTable);
 
             const active = ['bg-white', 'text-red-600', 'shadow-sm'];
             const inactive = ['text-gray-500', 'hover:text-gray-800'];
             const btnTable = document.getElementById('btn-table');
             const btnCards = document.getElementById('btn-cards');
 
-            [[btnTable, isTable], [btnCards, !isTable]].forEach(([btn, on]) => {
-                active.forEach(c => btn.classList.toggle(c, on));
-                inactive.forEach(c => btn.classList.toggle(c, !on));
+            if (btnTable && btnCards) {
+                [[btnTable, isTable], [btnCards, !isTable]].forEach(([btn, on]) => {
+                    active.forEach(c => btn.classList.toggle(c, on));
+                    inactive.forEach(c => btn.classList.toggle(c, !on));
+                });
+            }
+        }
+
+        function validateForm(event) {
+            const actionVal = document.getElementById('form-action').value;
+            if (actionVal === 'ajouter_utilisateur') return true;
+
+            let isValid = true;
+            const matricule = document.getElementById('matricule');
+            const nom = document.getElementById('nom');
+            const prenom = document.getElementById('prenom');
+            const telephone = document.getElementById('telephone');
+            const classe = document.getElementById('classe_id');
+
+            const errMatricule = document.getElementById('error-matricule');
+            const errNom = document.getElementById('error-nom');
+            const errPrenom = document.getElementById('error-prenom');
+            const errTelephone = document.getElementById('error-telephone');
+            const errClasse = document.getElementById('error-classe');
+
+            [matricule, nom, prenom, telephone, classe].forEach(el => el.classList.remove('border-red-500'));
+            [errMatricule, errNom, errPrenom, errTelephone, errClasse].forEach(el => {
+                if(el) {
+                    el.classList.add('hidden');
+                    el.textContent = '';
+                }
             });
+
+            if (!matricule.value.trim()) {
+                matricule.classList.add('border-red-500');
+                errMatricule.textContent = "Le matricule est obligatoire.";
+                errMatricule.classList.remove('hidden');
+                isValid = false;
+            }
+            if (!nom.value.trim()) {
+                nom.classList.add('border-red-500');
+                errNom.textContent = "Le nom est obligatoire.";
+                errNom.classList.remove('hidden');
+                isValid = false;
+            }
+            if (!prenom.value.trim()) {
+                prenom.classList.add('border-red-500');
+                errPrenom.textContent = "Le prénom est obligatoire.";
+                errPrenom.classList.remove('hidden');
+                isValid = false;
+            }
+
+            const phoneVal = telephone.value.trim();
+            const phoneRegex = /^(?:\+221)?\s*(?:30|33|70|75|76|77|78)\s*\d{3}\s*\d{2}\s*\d{2}$/;
+
+            if (!phoneVal) {
+                telephone.classList.add('border-red-500');
+                errTelephone.textContent = "Le numéro de téléphone est obligatoire.";
+                errTelephone.classList.remove('hidden');
+                isValid = false;
+            } else if (!phoneRegex.test(phoneVal)) {
+                telephone.classList.add('border-red-500');
+                errTelephone.textContent = "Format invalide (ex: +221 77 123 45 67).";
+                errTelephone.classList.remove('hidden');
+                isValid = false;
+            }
+
+            if (!classe.value) {
+                classe.classList.add('border-red-500');
+                errClasse.textContent = "Veuillez sélectionner une classe.";
+                errClasse.classList.remove('hidden');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+                return false;
+            }
+            return true;
         }
     </script>
+
+    <?php if (isset($_GET['success'])): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                <?php if ($_GET['success'] == '3'): ?>
+                    showToast("Utilisateur créé avec succès.", "success");
+                <?php elseif ($_GET['success'] == '2'): ?>
+                    showToast("Étudiant modifié avec succès.", "success");
+                <?php elseif ($_GET['success'] == '1'): ?>
+                    showToast("Étudiant ajouté avec succès.", "success");
+                <?php endif; ?>
+            });
+        </script>
+    <?php endif; ?>
+
 </body>
 </html>
