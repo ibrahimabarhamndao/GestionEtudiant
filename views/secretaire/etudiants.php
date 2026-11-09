@@ -456,14 +456,14 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
                     </div>
                 </div>
 
-                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                    <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition cursor-pointer">
-                        Annuler
-                    </button>
-                    <button type="submit" id="submit-btn" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm cursor-pointer">
-                        Ajouter
-                    </button>
-                </div>
+                <div class="pt-4 flex items-center justify-between space-x-3 border-t border-gray-100">
+    <button type="button" onclick="toggleDrawer(false)" class="w-full px-4 py-2.5 bg-white text-gray-800 border border-gray-200 text-sm font-semibold rounded-xl hover:bg-gray-50 transition">
+        Annuler
+    </button>
+    <button type="submit" id="submit-btn" class="w-full px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition shadow-sm">
+        <?= $modeEdition ? 'Modifier la filière' : 'Ajouter la filière' ?>
+    </button>
+</div>
             </form>
         </div>
     </div>

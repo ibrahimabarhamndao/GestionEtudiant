@@ -7,48 +7,158 @@ require_once '../../config/db.php';
 $recherche = trim($_GET['q'] ?? '');
 $message = "";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $id = $_POST['id'] ?? null;
+function h($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+// Classes CSS d'un champ du formulaire (seule la bordure devient rouge en cas d'erreur)
+function classesChamp($erreur) {
+    return 'w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none focus:border-red-600 '
+        . ($erreur !== '' ? 'border-red-500' : 'border-gray-200');
+}
+
+// Création automatique de la table si elle n'existe pas
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS filieres (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code_filiere VARCHAR(50) NOT NULL UNIQUE,
+        nom VARCHAR(150) NOT NULL,
+        responsable VARCHAR(150) DEFAULT NULL,
+        description TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (PDOException $e) {
+    error_log("Erreur table filieres : " . $e->getMessage());
+}
+
+// ==========================================
+// AJOUT ET MODIFICATION (avec validation)
+// ==========================================
+
+$champs = ['code_filiere', 'nom', 'responsable', 'description', 'general'];
+$erreurs = array_fill_keys($champs, '');
+
+// Valeurs affichées dans le formulaire (conservées en cas d'erreur)
+$ancien = [
+    'action'       => 'ajouter_filiere',
+    'id'           => '',
+    'code_filiere' => '',
+    'nom'          => '',
+    'responsable'  => '',
+    'description'  => '',
+];
+$aDesErreurs = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])
+    && in_array($_POST['action'], ['ajouter_filiere', 'modifier_filiere'], true)) {
+
+    $actionPost = $_POST['action'];
+    $id = (int)($_POST['id'] ?? 0);
     $code_filiere = trim($_POST['code_filiere'] ?? '');
     $nom = trim($_POST['nom'] ?? '');
     $responsable = trim($_POST['responsable'] ?? '');
     $description = trim($_POST['description'] ?? '');
 
-    if (!empty($code_filiere) && !empty($nom)) {
-        try {
-            $pdo->exec("CREATE TABLE IF NOT EXISTS filieres (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                code_filiere VARCHAR(50) NOT NULL UNIQUE,
-                nom VARCHAR(150) NOT NULL,
-                responsable VARCHAR(150) DEFAULT NULL,
-                description TEXT DEFAULT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )");
+    $ancien = [
+        'action'       => $actionPost,
+        'id'           => $id > 0 ? $id : '',
+        'code_filiere' => $code_filiere,
+        'nom'          => $nom,
+        'responsable'  => $responsable,
+        'description'  => $description,
+    ];
 
-            if ($_POST['action'] === 'ajouter_filiere') {
+    try {
+
+        // --- Code filière ---
+        if ($code_filiere === '') {
+            $erreurs['code_filiere'] = "Le code de la filière est obligatoire.";
+        } elseif (mb_strlen($code_filiere) < 2) {
+            $erreurs['code_filiere'] = "Le code doit contenir au moins 2 caractères.";
+        } elseif (mb_strlen($code_filiere) > 50) {
+            $erreurs['code_filiere'] = "Le code ne doit pas dépasser 50 caractères.";
+        } else {
+            // Unicité du code (en ignorant la filière en cours de modification)
+            $idExclu = ($actionPost === 'modifier_filiere') ? $id : 0;
+            $check = $pdo->prepare("SELECT id FROM filieres WHERE code_filiere = ? AND id <> ?");
+            $check->execute([$code_filiere, $idExclu]);
+            if ($check->fetch(PDO::FETCH_ASSOC)) {
+                $erreurs['code_filiere'] = "Ce code de filière existe déjà.";
+            }
+        }
+
+        // --- Nom ---
+        if ($nom === '') {
+            $erreurs['nom'] = "Le nom de la filière est obligatoire.";
+        } elseif (mb_strlen($nom) < 2) {
+            $erreurs['nom'] = "Le nom doit contenir au moins 2 caractères.";
+        } elseif (mb_strlen($nom) > 150) {
+            $erreurs['nom'] = "Le nom ne doit pas dépasser 150 caractères.";
+        }
+
+        // --- Responsable (facultatif) ---
+        if (mb_strlen($responsable) > 150) {
+            $erreurs['responsable'] = "Le nom du responsable ne doit pas dépasser 150 caractères.";
+        }
+
+        // --- Description (facultative) ---
+        if (mb_strlen($description) > 500) {
+            $erreurs['description'] = "La description ne doit pas dépasser 500 caractères.";
+        }
+
+        // --- Modification : la filière doit exister ---
+        if ($actionPost === 'modifier_filiere') {
+            if ($id <= 0) {
+                $erreurs['general'] = "Identifiant de filière invalide.";
+            } else {
+                $check = $pdo->prepare("SELECT id FROM filieres WHERE id = ?");
+                $check->execute([$id]);
+                if (!$check->fetch(PDO::FETCH_ASSOC)) {
+                    $erreurs['general'] = "La filière à modifier est introuvable.";
+                }
+            }
+        }
+
+        // --- Enregistrement si aucune erreur ---
+        if (implode('', $erreurs) === '') {
+
+            if ($actionPost === 'ajouter_filiere') {
                 $stmt = $pdo->prepare("INSERT INTO filieres (code_filiere, nom, responsable, description) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$code_filiere, $nom, $responsable, $description]);
                 header("Location: filieres.php?success=1");
                 exit();
-            } elseif ($_POST['action'] === 'modifier_filiere' && !empty($id)) {
-                $stmt = $pdo->prepare("UPDATE filieres SET code_filiere = ?, nom = ?, responsable = ?, description = ? WHERE id = ?");
-                $stmt->execute([$code_filiere, $nom, $responsable, $description, $id]);
-                header("Location: filieres.php?success=2");
-                exit();
             }
-        } catch (PDOException $e) {
-            $message = "Erreur : Ce code de filière existe déjà.";
+
+            $stmt = $pdo->prepare("UPDATE filieres SET code_filiere = ?, nom = ?, responsable = ?, description = ? WHERE id = ?");
+            $stmt->execute([$code_filiere, $nom, $responsable, $description, $id]);
+            header("Location: filieres.php?success=2");
+            exit();
         }
-    } else {
-        $message = "Veuillez remplir les champs obligatoires (*).";
+
+    } catch (PDOException $e) {
+
+        if ($e->getCode() === '23000') {
+            $erreurs['code_filiere'] = "Ce code de filière existe déjà.";
+        } else {
+            error_log("Erreur CRUD filieres : " . $e->getMessage());
+            $erreurs['general'] = "Erreur technique lors de l'enregistrement.";
+        }
     }
+
+    $aDesErreurs = implode('', $erreurs) !== '';
 }
+
+$modeEdition = ($ancien['action'] === 'modifier_filiere');
+
+// ==========================================
+// RÉCUPÉRATION DES FILIÈRES
+// ==========================================
 
 $filieres = [];
 try {
     if (!empty($recherche)) {
-        $stmt = $pdo->prepare("SELECT * FROM filieres WHERE nom LIKE :q OR code_filiere LIKE :q OR responsable LIKE :q ORDER BY id DESC");
-        $stmt->execute([':q' => "%$recherche%"]);
+        $stmt = $pdo->prepare("SELECT * FROM filieres WHERE nom LIKE :q1 OR code_filiere LIKE :q2 OR responsable LIKE :q3 ORDER BY id DESC");
+        $stmt->execute([':q1' => "%$recherche%", ':q2' => "%$recherche%", ':q3' => "%$recherche%"]);
         $filieres = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
         $filieres = $pdo->query("SELECT * FROM filieres ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
@@ -58,6 +168,8 @@ try {
 }
 
 $total = count($filieres);
+
+$jsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -79,13 +191,13 @@ $total = count($filieres);
             
             <?php if (!empty($message)): ?>
                 <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
-                    <?= htmlspecialchars($message) ?>
+                    <?= h($message) ?>
                 </div>
             <?php endif; ?>
 
             <div class="flex items-center justify-between">
                 <form id="searchForm" action="filieres.php" method="GET" class="relative w-80">
-                    <input type="text" id="searchInput" name="q" value="<?= htmlspecialchars($recherche) ?>" placeholder="Rechercher une filière..." class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition" autocomplete="off">
+                    <input type="text" id="searchInput" name="q" value="<?= h($recherche) ?>" placeholder="Rechercher une filière..." class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition" autocomplete="off">
                     <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 hover:text-red-600">
                         <i class="fa-solid fa-magnifying-glass text-sm"></i>
                     </button>
@@ -128,14 +240,14 @@ $total = count($filieres);
                             <?php else: foreach ($filieres as $f): ?>
                             <tr class="hover:bg-gray-50 transition">
                                 <td class="py-4 px-6">
-                                    <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full"><?= htmlspecialchars($f['code_filiere']) ?></span>
+                                    <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full"><?= h($f['code_filiere']) ?></span>
                                 </td>
-                                <td class="py-4 px-4 font-bold text-gray-900"><?= htmlspecialchars($f['nom']) ?></td>
-                                <td class="py-4 px-4 text-xs text-slate-500"><?= htmlspecialchars($f['responsable'] ?: 'Non assigné') ?></td>
-                                <td class="py-4 px-4 text-xs text-slate-500"><?= htmlspecialchars($f['description'] ?: '-') ?></td>
+                                <td class="py-4 px-4 font-bold text-gray-900"><?= h($f['nom']) ?></td>
+                                <td class="py-4 px-4 text-xs text-slate-500"><?= h($f['responsable'] ?: 'Non assigné') ?></td>
+                                <td class="py-4 px-4 text-xs text-slate-500"><?= h($f['description'] ?: '-') ?></td>
                                 <td class="py-4 px-6 text-right space-x-3">
-                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f) ?>)' class="text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen"></i></button>
-                                    <button type="button" onclick="openDeleteModalAsync(<?= $f['id'] ?>, '<?= htmlspecialchars($f['nom'], ENT_QUOTES) ?>', this.closest('tr'))" class="text-slate-500 hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f, $jsonFlags) ?>)' class="text-slate-500 hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= (int)$f['id'] ?>, <?= h(json_encode($f['nom'], $jsonFlags)) ?>, this.closest('tr'))" class="text-slate-500 hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can"></i></button>
                                 </td>
                             </tr>
                             <?php endforeach; endif; ?>
@@ -148,24 +260,24 @@ $total = count($filieres);
                         <?php foreach ($filieres as $f): ?>
                         <div class="bg-white border border-gray-100 rounded-xl shadow-md p-4">
                             <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                                <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded"><?= htmlspecialchars($f['code_filiere']) ?></span>
+                                <span class="inline-block px-2.5 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded"><?= h($f['code_filiere']) ?></span>
                                 <div class="flex items-center space-x-3 text-slate-500">
-                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f) ?>)' class="hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button type="button" onclick="openDeleteModalAsync(<?= $f['id'] ?>, '<?= htmlspecialchars($f['nom'], ENT_QUOTES) ?>', this.closest('div.bg-white'))" class="hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
+                                    <button type="button" onclick='openEditDrawer(<?= json_encode($f, $jsonFlags) ?>)' class="hover:text-blue-600 transition cursor-pointer" title="Modifier"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button type="button" onclick="openDeleteModalAsync(<?= (int)$f['id'] ?>, <?= h(json_encode($f['nom'], $jsonFlags)) ?>, this.closest('div.bg-white'))" class="hover:text-red-600 transition cursor-pointer" title="Supprimer"><i class="fa-regular fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
                             <div class="pt-3 space-y-3">
                                 <div>
                                     <p class="text-xs text-slate-500">Nom</p>
-                                    <p class="text-sm font-bold text-gray-900"><?= htmlspecialchars($f['nom']) ?></p>
+                                    <p class="text-sm font-bold text-gray-900"><?= h($f['nom']) ?></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Responsable</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($f['responsable'] ?: 'Non assigné') ?></p>
+                                    <p class="text-xs text-slate-600"><?= h($f['responsable'] ?: 'Non assigné') ?></p>
                                 </div>
                                 <div>
                                     <p class="text-xs text-slate-500">Description</p>
-                                    <p class="text-xs text-slate-600"><?= htmlspecialchars($f['description'] ?: '-') ?></p>
+                                    <p class="text-xs text-slate-600"><?= h($f['description'] ?: '-') ?></p>
                                 </div>
                             </div>
                         </div>
@@ -184,45 +296,59 @@ $total = count($filieres);
     <!-- DRAWER LATÉRAL AJOUT / MODIFICATION -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
     
-    <div id="drawer" class="fixed top-0 right-0 h-full w-[420px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
+    <div id="drawer" class="fixed top-0 right-0 h-full w-[420px] max-w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
         <div>
             <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h3 id="drawer-title" class="font-bold text-base text-gray-800">Nouvelle filière</h3>
+                <h3 id="drawer-title" class="font-bold text-base text-gray-800"><?= $modeEdition ? 'Modifier la filière' : 'Nouvelle filière' ?></h3>
                 <button onclick="toggleDrawer(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
             </div>
 
-            <form id="filiereForm" action="filieres.php" method="POST" class="p-6 space-y-4">
-                <input type="hidden" id="form-action" name="action" value="ajouter_filiere">
-                <input type="hidden" id="filiere_id" name="id" value="">
+            <form id="filiereForm" action="filieres.php" method="POST" class="p-6 space-y-4" novalidate>
+                <input type="hidden" id="form-action" name="action" value="<?= h($ancien['action']) ?>">
+                <input type="hidden" id="filiere_id" name="id" value="<?= h($ancien['id']) ?>">
+
+                <!-- Erreur générale -->
+                <div id="err-general"
+                     class="p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-xs rounded-lg <?= $erreurs['general'] === '' ? 'hidden' : '' ?>">
+                    <?= h($erreurs['general']) ?>
+                </div>
                 
+                <!-- Code -->
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">CODE*</label>
-                    <input type="text" id="code_filiere" name="code_filiere" placeholder="INFO" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" id="code_filiere" name="code_filiere" value="<?= h($ancien['code_filiere']) ?>" placeholder="INFO" class="<?= classesChamp($erreurs['code_filiere']) ?>">
+                    <p id="err-code_filiere" class="mt-1 text-xs text-red-600 <?= $erreurs['code_filiere'] === '' ? 'hidden' : '' ?>"><?= h($erreurs['code_filiere']) ?></p>
                 </div>
 
+                <!-- Nom -->
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">NOM*</label>
-                    <input type="text" id="nom" name="nom" placeholder="Informatique" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" id="nom" name="nom" value="<?= h($ancien['nom']) ?>" placeholder="Informatique" class="<?= classesChamp($erreurs['nom']) ?>">
+                    <p id="err-nom" class="mt-1 text-xs text-red-600 <?= $erreurs['nom'] === '' ? 'hidden' : '' ?>"><?= h($erreurs['nom']) ?></p>
                 </div>
 
+                <!-- Responsable -->
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">RESPONSABLE</label>
-                    <input type="text" id="responsable" name="responsable" placeholder="Dr. Nom Prenom" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600">
+                    <input type="text" id="responsable" name="responsable" value="<?= h($ancien['responsable']) ?>" placeholder="Dr. Nom Prenom" class="<?= classesChamp($erreurs['responsable']) ?>">
+                    <p id="err-responsable" class="mt-1 text-xs text-red-600 <?= $erreurs['responsable'] === '' ? 'hidden' : '' ?>"><?= h($erreurs['responsable']) ?></p>
                 </div>
 
+                <!-- Description -->
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">DESCRIPTION</label>
-                    <textarea id="description" name="description" rows="3" placeholder="Description de la filière......" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-600"></textarea>
+                    <textarea id="description" name="description" rows="3" placeholder="Description de la filière......" class="<?= classesChamp($erreurs['description']) ?>"><?= h($ancien['description']) ?></textarea>
+                    <p id="err-description" class="mt-1 text-xs text-red-600 <?= $erreurs['description'] === '' ? 'hidden' : '' ?>"><?= h($erreurs['description']) ?></p>
                 </div>
 
-                <div class="pt-4 flex items-center justify-end space-x-3 border-t border-gray-100">
-                    <button type="button" onclick="toggleDrawer(false)" class="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition">
-                        Annuler
-                    </button>
-                    <button type="submit" id="submit-btn" class="px-4 py-2.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition shadow-sm">
-                        Ajouter la filière
-                    </button>
-                </div>
+                <div class="pt-4 flex items-center justify-between space-x-3 border-t border-gray-100">
+    <button type="button" onclick="toggleDrawer(false)" class="w-full px-4 py-2.5 bg-white text-gray-800 border border-gray-200 text-sm font-semibold rounded-xl hover:bg-gray-50 transition">
+        Annuler
+    </button>
+    <button type="submit" id="submit-btn" class="w-full px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition shadow-sm">
+        <?= $modeEdition ? 'Modifier la filière' : 'Ajouter la filière' ?>
+    </button>
+</div>
             </form>
         </div>
     </div>
@@ -302,6 +428,99 @@ $total = count($filieres);
 
             toast.dataset.timeoutId = hideTimeout;
         }
+
+        // ==========================================
+        // VALIDATION DES CHAMPS (côté navigateur)
+        // ==========================================
+
+        const CHAMPS_FORM = ['code_filiere', 'nom', 'responsable', 'description'];
+
+        function setErreur(champ, texte) {
+            const input = document.getElementById(champ);
+            const zone = document.getElementById('err-' + champ);
+
+            if (zone) {
+                zone.textContent = texte;
+                zone.classList.toggle('hidden', texte === '');
+            }
+
+            if (input) {
+                input.classList.toggle('border-red-500', texte !== '');
+                input.classList.toggle('border-gray-200', texte === '');
+            }
+        }
+
+        function effacerErreurs() {
+            CHAMPS_FORM.forEach(c => setErreur(c, ''));
+
+            const general = document.getElementById('err-general');
+            general.textContent = '';
+            general.classList.add('hidden');
+        }
+
+        function validerFormulaire() {
+            effacerErreurs();
+
+            let valide = true;
+            const erreur = (champ, texte) => { setErreur(champ, texte); valide = false; };
+
+            const code = document.getElementById('code_filiere').value.trim();
+            const nom = document.getElementById('nom').value.trim();
+            const responsable = document.getElementById('responsable').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            if (code === '') {
+                erreur('code_filiere', "Le code de la filière est obligatoire.");
+            } else if (code.length < 2) {
+                erreur('code_filiere', "Le code doit contenir au moins 2 caractères.");
+            } else if (code.length > 50) {
+                erreur('code_filiere', "Le code ne doit pas dépasser 50 caractères.");
+            }
+
+            if (nom === '') {
+                erreur('nom', "Le nom de la filière est obligatoire.");
+            } else if (nom.length < 2) {
+                erreur('nom', "Le nom doit contenir au moins 2 caractères.");
+            } else if (nom.length > 150) {
+                erreur('nom', "Le nom ne doit pas dépasser 150 caractères.");
+            }
+
+            if (responsable.length > 150) {
+                erreur('responsable', "Le nom du responsable ne doit pas dépasser 150 caractères.");
+            }
+
+            if (description.length > 500) {
+                erreur('description', "La description ne doit pas dépasser 500 caractères.");
+            }
+
+            return valide;
+        }
+
+        document.getElementById('filiereForm').addEventListener('submit', function(e) {
+            if (!validerFormulaire()) {
+                e.preventDefault();
+            }
+        });
+
+        // Efface l'erreur d'un champ dès que l'utilisateur le corrige
+        CHAMPS_FORM.forEach(champ => {
+            const el = document.getElementById(champ);
+            el.addEventListener('input', () => setErreur(champ, ''));
+            el.addEventListener('change', () => setErreur(champ, ''));
+        });
+
+        // Vide complètement le formulaire (reset() restaurerait les anciennes valeurs après une erreur serveur)
+        function viderFormulaire() {
+            document.getElementById('code_filiere').value = '';
+            document.getElementById('nom').value = '';
+            document.getElementById('responsable').value = '';
+            document.getElementById('description').value = '';
+            effacerErreurs();
+        }
+
+        // ==========================================
+        // SUPPRESSION / RESTAURATION
+        // ==========================================
 
         let filiereToDeleteId = null;
         let filiereRowElement = null;
@@ -404,15 +623,16 @@ $total = count($filieres);
         }
 
         function openAddDrawer() {
+            viderFormulaire();
             document.getElementById('drawer-title').textContent = "Nouvelle filière";
             document.getElementById('form-action').value = "ajouter_filiere";
             document.getElementById('filiere_id').value = "";
             document.getElementById('submit-btn').textContent = "Ajouter la filière";
-            document.getElementById('filiereForm').reset();
             toggleDrawer(true);
         }
 
         function openEditDrawer(filiere) {
+            viderFormulaire();
             document.getElementById('drawer-title').textContent = "Modifier la filière";
             document.getElementById('form-action').value = "modifier_filiere";
             document.getElementById('filiere_id').value = filiere.id;
@@ -425,6 +645,11 @@ $total = count($filieres);
 
             toggleDrawer(true);
         }
+
+        // Réouverture du drawer si le serveur a renvoyé des erreurs
+        <?php if ($aDesErreurs): ?>
+        document.addEventListener('DOMContentLoaded', () => toggleDrawer(true));
+        <?php endif; ?>
 
         function setView(mode) {
             const isTable = mode === 'table';
