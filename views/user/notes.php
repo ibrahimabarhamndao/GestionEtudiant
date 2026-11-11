@@ -60,16 +60,22 @@ try {
  <?php include '../../includes/sidebar_etudiant.php'; ?>
 
     <!-- CONTENU PRINCIPAL -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         
         <!-- HEADER -->
-        <header class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shrink-0">
-            <div>
-                <h1 class="text-lg font-bold text-gray-900"><?= htmlspecialchars($titrePage) ?></h1>
-                <p class="text-xs text-gray-400"><?= htmlspecialchars($descriptionPage) ?></p>
+        <header class="bg-white border-b border-gray-200 px-4 sm:px-6 md:px-8 py-3 md:py-4 flex justify-between items-center gap-3 shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" data-sb-toggle aria-label="Ouvrir le menu" aria-expanded="false"
+                        class="md:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <div class="min-w-0">
+                    <h1 class="text-base md:text-lg font-bold text-gray-900 truncate"><?= htmlspecialchars($titrePage) ?></h1>
+                    <p class="text-xs text-gray-400 truncate"><?= htmlspecialchars($descriptionPage) ?></p>
+                </div>
             </div>
 
-            <div class="flex items-center space-x-6">
+            <div class="flex items-center gap-4 md:gap-6 shrink-0">
                 <a href="notifications.php" class="relative text-gray-500 hover:text-gray-700 transition">
                     <i class="fa-regular fa-bell text-lg"></i>
                     <span class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">2</span>
@@ -79,20 +85,20 @@ try {
                     <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
                         MD
                     </div>
-                    <div class="flex flex-col text-left">
+                    <div class="hidden sm:flex flex-col text-left">
                         <span class="text-sm font-bold text-gray-900 leading-tight">Mamadou</span>
                         <span class="text-[11px] text-gray-500 leading-tight">Diallo</span>
                     </div>
-                    <i class="fa-solid fa-chevron-down text-xs text-red-600 ml-1"></i>
+                    <i class="hidden sm:inline fa-solid fa-chevron-down text-xs text-red-600 ml-1"></i>
                 </div>
             </div>
         </header>
 
         <!-- CORPS DE PAGE -->
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
             
             <!-- Statistiques / Cartes du Haut -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                 <!-- Carte 1 : Moyenne générale -->
                 <div class="bg-red-600 rounded-2xl p-6 text-white shadow-sm flex flex-col justify-between">
                     <div class="text-3xl font-extrabold tracking-tight"><?= $stats['moyenne_generale'] ?></div>
@@ -115,7 +121,7 @@ try {
             <!-- Conteneur Tableau des Notes -->
             <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-2xs space-y-6">
                 
-                <div class="flex justify-end">
+                <div class="hidden lg:flex justify-end">
                     <div class="bg-gray-50 border border-gray-200 rounded-lg p-1 flex text-xs font-medium">
                         <button class="px-3 py-1.5 bg-red-50 text-red-600 rounded-md shadow-2xs flex items-center space-x-1.5">
                             <i class="fa-solid fa-table"></i>
@@ -128,7 +134,49 @@ try {
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- Vue cartes (téléphone et tablette) -->
+                <?php
+                $cartesNotes = [];
+                if (count($notes) > 0) {
+                    foreach ($notes as $n) {
+                        $val = $n['valeur'];
+                        if ($val >= 16) { $mention = 'Très bien'; $badgeColor = 'bg-emerald-50 text-emerald-600'; }
+                        elseif ($val >= 14) { $mention = 'Bien'; $badgeColor = 'bg-blue-50 text-blue-600'; }
+                        elseif ($val >= 12) { $mention = 'Assez bien'; $badgeColor = 'bg-amber-50 text-amber-600'; }
+                        else { $mention = 'Passable'; $badgeColor = 'bg-gray-100 text-gray-500'; }
+                        $cartesNotes[] = [$n['nom_matiere'], $n['nom_prof'] ?? 'Dr. Diallo', $n['coefficient'], $val, $mention, $badgeColor];
+                    }
+                } else {
+                    // Données de démonstration (identiques au tableau)
+                    $cartesNotes = [
+                        ['Algorithmique', 'Dr. Diallo', '3', '14.5', 'Bien', 'bg-blue-50 text-blue-600'],
+                        ['Base de données', 'Dr. Diallo', '3', '16.0', 'Très bien', 'bg-emerald-50 text-emerald-600'],
+                        ['Réseaux informatiques', 'Dr. Diallo', '2', '13.0', 'Assez bien', 'bg-amber-50 text-amber-600'],
+                        ['Mathématiques', 'Dr. Diallo', '2', '11.5', 'Passable', 'bg-gray-100 text-gray-500'],
+                        ['Programmation Web', 'Dr. Diallo', '1', '17.5', 'Très bien', 'bg-emerald-50 text-emerald-600'],
+                        ['Anglais Technique', 'Dr. Diallo', '3', '15.0', 'Bien', 'bg-blue-50 text-blue-600'],
+                    ];
+                }
+                ?>
+                <div class="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <?php foreach ($cartesNotes as $cn): ?>
+                        <div class="border border-gray-100 rounded-xl p-4 shadow-sm">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h4 class="font-bold text-sm text-gray-900"><?= htmlspecialchars($cn[0]) ?></h4>
+                                    <p class="text-xs text-gray-500"><?= htmlspecialchars($cn[1]) ?></p>
+                                </div>
+                                <span class="text-lg font-extrabold text-gray-900 shrink-0"><?= htmlspecialchars($cn[3]) ?><span class="text-xs font-medium text-gray-400">/20</span></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-3 text-xs">
+                                <span class="text-gray-400">Coef. <?= htmlspecialchars($cn[2]) ?></span>
+                                <span class="<?= $cn[5] ?> px-2.5 py-1 rounded-md font-medium text-[11px]"><?= htmlspecialchars($cn[4]) ?></span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-gray-400 text-[11px] uppercase tracking-wider border-b border-gray-100">

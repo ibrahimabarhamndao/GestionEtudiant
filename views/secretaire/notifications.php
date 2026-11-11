@@ -86,11 +86,11 @@ try {
 
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         
         <?php include '../../includes/header.php'; ?>
 
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
             
             <div class="flex justify-between items-center">
                 <span id="compteur-non-lus" class="text-sm font-medium text-gray-500"><?= $nonLusCount ?> non lu(s)</span>
@@ -144,7 +144,7 @@ try {
     <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center hidden">
         <div id="modal-backdrop" class="fixed inset-0 bg-black/50 opacity-0 transition-opacity duration-300" onclick="toggleModal(false)"></div>
 
-        <div id="modal-box" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300 space-y-4">
+        <div id="modal-box" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 z-10 opacity-0 scale-95 transition-all duration-300 space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-base text-gray-800">Ajouter une notification</h3>
                 <button onclick="toggleModal(false)" class="text-gray-400 hover:text-gray-600 text-xl font-bold cursor-pointer">&times;</button>
@@ -199,7 +199,7 @@ try {
     </div>
 
     <!-- TOAST (annuler la suppression) -->
-    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden items-center space-x-4 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl">
+    <div id="toast" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 hidden items-center space-x-4 bg-gray-900 text-white text-sm px-5 py-3 rounded-xl shadow-2xl">
         <span id="toast-message"></span>
         <button id="toast-annuler" type="button" class="font-bold text-amber-400 hover:text-amber-300 underline cursor-pointer">Annuler</button>
     </div>

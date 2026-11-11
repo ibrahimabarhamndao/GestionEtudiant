@@ -1,5 +1,5 @@
 <!-- CONTAINER DES TOASTS NOTIFICATIONS -->
-<div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3"></div>
+<div id="toastContainer" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col space-y-3"></div>
 
 <script>
 // --- FONCTION TOAST FIDÈLE AU FIGMA ---
@@ -11,7 +11,7 @@ function showToast(message, type = 'success') {
     const bgColor = isSuccess ? 'bg-[#00B67A]' : 'bg-[#DC2626]'; 
     
     const toast = document.createElement('div');
-    toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[320px]`;
+    toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px]`;
     
     // Icône de gauche (coche verte ou poubelle/croix pour le rouge)
     const iconSvg = isSuccess 

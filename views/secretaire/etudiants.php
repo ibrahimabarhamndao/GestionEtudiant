@@ -171,10 +171,10 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
 
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         <?php include '../../includes/header.php'; ?>
 
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
 
             <div class="flex items-center space-x-2 border-b border-gray-200 pb-2">
                 <a href="etudiants.php?tab=etudiants" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition <?= ($tab !== 'utilisateurs') ? 'bg-red-50 text-red-600' : 'text-slate-500 hover:text-gray-800' ?>">
@@ -185,15 +185,15 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
                 </a>
             </div>
 
-            <div class="flex items-center justify-between">
-                <form id="searchForm" action="etudiants.php" method="GET" class="relative w-80">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <form id="searchForm" action="etudiants.php" method="GET" class="relative w-full sm:w-80">
                     <input type="hidden" name="tab" value="<?= htmlspecialchars($tab) ?>">
                     <input type="text" id="searchInput" name="q" value="<?= htmlspecialchars($recherche) ?>" placeholder="<?= ($tab !== 'utilisateurs') ? 'Rechercher un étudiant...' : 'Rechercher un compte...' ?>" class="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-red-600 transition" autocomplete="off">
                     <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-800 hover:text-red-600">
                         <i class="fa-solid fa-magnifying-glass text-sm"></i>
                     </button>
                 </form>
-                <button onclick="<?= ($tab !== 'utilisateurs') ? 'openAddStudentDrawer()' : 'openAddUserDrawer()' ?>" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm cursor-pointer">
+                <button onclick="<?= ($tab !== 'utilisateurs') ? 'openAddStudentDrawer()' : 'openAddUserDrawer()' ?>" class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm justify-center shrink-0 cursor-pointer">
                     <span><?= ($tab !== 'utilisateurs') ? 'Ajouter un étudiant' : 'Ajouter un utilisateur' ?></span>
                     <i class="fa-solid fa-plus text-xs"></i>
                 </button>
@@ -206,7 +206,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
             <?php endif; ?>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="flex justify-end px-4 py-3 border-b border-gray-100">
+                <div class="hidden lg:flex justify-end px-4 py-3 border-b border-gray-100">
                     <div class="bg-gray-100 rounded-lg p-1 flex text-xs font-medium">
                         <button id="btn-table" type="button" onclick="setView('table')" class="px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition bg-white text-red-600 shadow-sm cursor-pointer">
                             <i class="fa-solid fa-table"></i>
@@ -262,7 +262,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
                 </div>
 
                 <!-- VUE CARTES ÉTUDIANTS -->
-                <div id="view-cards" class="hidden p-6">
+                <div id="view-cards" class="hidden p-4 sm:p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <?php foreach ($etudiants as $e): 
                             $jsonEtudiantCard = json_encode($e, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -321,7 +321,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
                 </div>
 
                 <!-- VUE CARTES COMPTES -->
-                <div id="view-cards" class="hidden p-6">
+                <div id="view-cards" class="hidden p-4 sm:p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         <?php if (empty($utilisateurs)): ?>
                             <p class="text-gray-400 text-xs">Aucun utilisateur trouvé.</p>
@@ -345,7 +345,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
                 </div>
                 <?php endif; ?>
 
-                <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
+                <div class="flex flex-wrap gap-3 justify-between items-center px-4 sm:px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
                     <span><?= $debutAffichage ?>–<?= $finAffichage ?> sur <?= $totalTotal ?></span>
                     
                     <?php if ($totalTotal > 5): ?>
@@ -375,7 +375,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
     <!-- DRAWER LATÉRAL AJOUT / MODIFICATION -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
     
-    <div id="drawer" class="fixed top-0 right-0 h-full w-[440px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
+    <div id="drawer" class="fixed top-0 right-0 h-full w-full max-w-[440px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
         <div>
             <div class="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h3 id="drawer-title" class="font-bold text-base text-gray-800">Nouvel étudiant</h3>
@@ -470,7 +470,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
 
     <!-- MODALE DE SUPPRESSION FIGMA -->
     <div id="deleteModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-2xl p-6 w-[400px] shadow-2xl transform scale-95 transition-transform duration-300">
+        <div class="bg-white rounded-2xl p-6 w-[400px] max-w-[90%] shadow-2xl transform scale-95 transition-transform duration-300">
             <div class="flex items-center space-x-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold">
                     <i class="fa-solid fa-triangle-exclamation"></i>
@@ -492,7 +492,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
     </div>
 
     <!-- CONTAINER DES TOASTS NOTIFICATIONS -->
-    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3"></div>
+    <div id="toastContainer" class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col space-y-3"></div>
 
     <script>
         function showToast(message, type = 'success', onUndo = null) {
@@ -501,7 +501,7 @@ $finAffichage = min($debut + $limiteParPage, $totalTotal);
             const bgColor = isSuccess ? 'bg-[#00B67A]' : 'bg-[#DC2626]'; 
             
             const toast = document.createElement('div');
-            toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[340px]`;
+            toast.className = `flex items-center justify-between space-x-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[340px]`;
             
             const iconSvg = isSuccess 
                 ? `<svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>`

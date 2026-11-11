@@ -458,11 +458,11 @@ if (count($creneaux) === 0) {
 
     <!-- CONTENU PRINCIPAL -->
 
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
 
         <?php include '../../includes/header.php'; ?>
 
-        <div class="flex-1 p-8 overflow-y-auto space-y-8">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6 md:space-y-8">
 
             <?php if (!empty($message)): ?>
 
@@ -474,7 +474,7 @@ if (count($creneaux) === 0) {
 
             <!-- BARRE D'OUTILS -->
 
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-3">
 
                 <span class="text-xs text-slate-500">
                     Planning hebdomadaire des cours
@@ -483,7 +483,7 @@ if (count($creneaux) === 0) {
                 <button
                     type="button"
                     onclick="openAddModal()"
-                    class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm justify-center shrink-0">
 
                     <span>Ajouter un créneau</span>
                     <i class="fa-solid fa-plus text-xs"></i>
@@ -494,7 +494,7 @@ if (count($creneaux) === 0) {
 
             <!-- GRILLE DES CINQ JOURS -->
 
-            <div class="grid grid-cols-5 gap-4 items-start">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-start">
 
                 <?php foreach ($planning as $jourPlanning => $cours): ?>
 
@@ -531,13 +531,13 @@ if (count($creneaux) === 0) {
 
                                         <?php if (!empty($c['id'])): ?>
 
-                                            <div class="space-x-1 opacity-0 group-hover:opacity-100 transition">
+                                            <div class="space-x-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100 transition">
 
                                                 <!-- MODIFIER -->
 
                                                 <button
                                                     type="button"
-                                                    class="text-gray-400 hover:text-blue-600 btn-edit-creneau"
+                                                    class="p-1.5 text-gray-400 hover:text-blue-600 btn-edit-creneau"
                                                     data-creneau="<?= h($jsonCreneau) ?>"
                                                     title="Modifier">
 
@@ -550,7 +550,7 @@ if (count($creneaux) === 0) {
                                                 <button
                                                     type="button"
                                                     onclick="openDeleteModal(<?= (int)$c['id'] ?>, this.closest('[data-creneau-id]'), <?= h(json_encode($c['matiere'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)) ?>)"
-                                                    class="text-gray-400 hover:text-red-600"
+                                                    class="p-1.5 text-gray-400 hover:text-red-600"
                                                     title="Supprimer">
 
                                                     <i class="fa-regular fa-trash-can text-[10px]"></i>
@@ -826,7 +826,7 @@ if (count($creneaux) === 0) {
     <!-- NOTIFICATIONS -->
 
     <div id="toastContainer"
-         class="fixed bottom-6 right-6 z-[60] flex flex-col space-y-3">
+         class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col space-y-3">
     </div>
 
     <!-- JAVASCRIPT -->
@@ -846,7 +846,7 @@ function showToast(message, type = 'success', onUndo = null) {
 
     const toast = document.createElement('div');
 
-    toast.className = `flex items-center justify-between gap-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[300px]`;
+    toast.className = `flex items-center justify-between gap-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[300px]`;
 
     toast.innerHTML = `
         <div class="flex items-center space-x-3">

@@ -54,16 +54,22 @@ try {
     <?php include '../../includes/sidebar_etudiant.php'; ?>
 
     <!-- CONTENU PRINCIPAL -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         
         <!-- HEADER ÉTUDIANT -->
-        <header class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shrink-0">
-            <div>
-                <h1 class="text-lg font-bold text-gray-900"><?= htmlspecialchars($titrePage) ?></h1>
-                <p class="text-xs text-gray-400"><?= htmlspecialchars($descriptionPage) ?></p>
+        <header class="bg-white border-b border-gray-200 px-4 sm:px-6 md:px-8 py-3 md:py-4 flex justify-between items-center gap-3 shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" data-sb-toggle aria-label="Ouvrir le menu" aria-expanded="false"
+                        class="md:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <div class="min-w-0">
+                    <h1 class="text-base md:text-lg font-bold text-gray-900 truncate"><?= htmlspecialchars($titrePage) ?></h1>
+                    <p class="text-xs text-gray-400 truncate"><?= htmlspecialchars($descriptionPage) ?></p>
+                </div>
             </div>
 
-            <div class="flex items-center space-x-6">
+            <div class="flex items-center gap-4 md:gap-6 shrink-0">
                 <!-- Notifications avec Badge -->
                 <a href="notifications.php" class="relative text-gray-500 hover:text-gray-700 transition">
                     <i class="fa-regular fa-bell text-lg"></i>
@@ -75,7 +81,7 @@ try {
                     <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
                         <?= isset($etudiant['prenom']) ? strtoupper(substr($etudiant['prenom'], 0, 1) . substr($etudiant['nom'], 0, 1)) : 'MD' ?>
                     </div>
-                    <div class="flex flex-col text-left">
+                    <div class="hidden sm:flex flex-col text-left">
                         <span class="text-sm font-bold text-gray-900 leading-tight">
                             <?= htmlspecialchars(($etudiant['prenom'] ?? 'Mamadou')) ?>
                         </span>
@@ -83,13 +89,13 @@ try {
                             <?= htmlspecialchars(($etudiant['nom'] ?? 'Diallo')) ?>
                         </span>
                     </div>
-                    <i class="fa-solid fa-chevron-down text-xs text-red-600 ml-1"></i>
+                    <i class="hidden sm:inline fa-solid fa-chevron-down text-xs text-red-600 ml-1"></i>
                 </div>
             </div>
         </header>
 
         <!-- CORPS DE PAGE -->
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
             
             <!-- Carte 1 : Informations de la classe -->
             <div class="bg-white rounded-2xl border border-gray-200/80 p-6 shadow-2xs relative">
@@ -107,7 +113,7 @@ try {
                     </span>
                 </div>
 
-                <div class="grid grid-cols-2 gap-8 pt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 pt-2">
                     <div>
                         <span class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">CAPACITÉ</span>
                         <span class="text-sm font-bold text-gray-900 mt-1 block">

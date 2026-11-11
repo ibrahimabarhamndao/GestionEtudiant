@@ -16,48 +16,113 @@ $menu = [
 ];
 ?>
 <style>
-    /* Menu latéral : réduit (icônes seules) par défaut, il s'étire au survol */
+    /* ==========================================================
+       MENU LATÉRAL
+       - Téléphone (< 768px)  : menu caché, il s'ouvre avec le bouton ☰ du header
+       - Tablette / PC (>= 768px) : rail d'icônes (5rem) qui s'étire à 16rem
+         au survol et POUSSE le contenu (header et page se rétrécissent)
+       ========================================================== */
+    #sidebar-wrap {
+        position: relative;
+        flex-shrink: 0;
+        width: 0;
+        height: 100vh;
+        z-index: 40;
+    }
+
+    /* Téléphone : tiroir hors écran */
     #sidebar-etudiant {
-        width: 5rem;
-        transition: width .3s ease, box-shadow .3s ease;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 16rem;
+        max-width: 85vw;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform .3s ease, box-shadow .3s ease, visibility 0s linear .3s;
+        z-index: 60;
         scrollbar-width: none;
     }
     #sidebar-etudiant::-webkit-scrollbar { display: none; }
+    #sidebar-wrap.sb-open #sidebar-etudiant {
+        transform: translateX(0);
+        visibility: visible;
+        box-shadow: 8px 0 24px rgba(0, 0, 0, .2);
+        transition-delay: 0s;
+    }
 
-    /* Les textes sont masqués quand le menu est réduit */
-    #sidebar-etudiant .sb-label {
+    /* Fond sombre derrière le tiroir (téléphone) */
+    #sb-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .5);
         opacity: 0;
-        transition: opacity .15s ease;
+        pointer-events: none;
+        transition: opacity .3s ease;
+        z-index: 55;
     }
-
-    /* Menu étiré : clavier (focus), tactile (classe sb-open) */
-    #sidebar-etudiant:focus-within,
-    #sidebar-etudiant.sb-open {
-        width: 16rem;
-        box-shadow: 8px 0 24px rgba(0, 0, 0, .12);
-    }
-    #sidebar-etudiant:focus-within .sb-label,
-    #sidebar-etudiant.sb-open .sb-label {
+    #sidebar-wrap.sb-open #sb-backdrop {
         opacity: 1;
-        transition: opacity .25s ease .1s;
+        pointer-events: auto;
     }
 
-    /* Menu étiré : survol de la souris (appareils avec souris uniquement) */
-    @media (hover: hover) {
-        #sidebar-etudiant:hover {
-            width: 16rem;
-            box-shadow: 8px 0 24px rgba(0, 0, 0, .12);
+    /* Tablette / PC : rail d'icônes qui pousse le contenu */
+    @media (min-width: 768px) {
+        #sidebar-wrap {
+            width: 5rem;
+            transition: width .3s ease;
         }
-        #sidebar-etudiant:hover .sb-label {
+        #sidebar-etudiant {
+            position: absolute;
+            width: 100%;
+            max-width: none;
+            transform: none;
+            visibility: visible;
+            box-shadow: 1px 0 3px rgba(0, 0, 0, .06);
+            z-index: auto;
+        }
+        #sb-backdrop { display: none; }
+
+        /* Les textes sont masqués quand le menu est réduit */
+        #sidebar-wrap .sb-label {
+            opacity: 0;
+            transition: opacity .15s ease;
+        }
+
+        /* Menu étiré : clavier (focus) ou tactile (classe sb-open) */
+        #sidebar-wrap.sb-open,
+        #sidebar-wrap:focus-within {
+            width: 16rem;
+        }
+        #sidebar-wrap.sb-open .sb-label,
+        #sidebar-wrap:focus-within .sb-label {
             opacity: 1;
             transition: opacity .25s ease .1s;
         }
     }
+
+    /* Menu étiré : survol de la souris (appareils avec souris uniquement) */
+    @media (min-width: 768px) and (hover: hover) {
+        #sidebar-wrap:hover {
+            width: 16rem;
+        }
+        #sidebar-wrap:hover .sb-label {
+            opacity: 1;
+            transition: opacity .25s ease .1s;
+        }
+    }
+
+    /* Mobiles : la hauteur tient compte de la barre d'adresse du navigateur */
+    @supports (height: 100dvh) {
+        body.h-screen, main.h-screen, #sidebar-wrap { height: 100dvh; }
+    }
 </style>
 
-<!-- Réserve 5rem dans la mise en page : le menu s'étire PAR-DESSUS le contenu sans le pousser -->
-<div class="relative w-20 shrink-0 h-screen z-50">
-    <aside id="sidebar-etudiant" class="absolute inset-y-0 left-0 bg-white border-r border-gray-200 flex flex-col justify-between overflow-x-hidden overflow-y-auto">
+<!-- Menu latéral : réserve 5rem (icônes) et s'étire à 16rem en poussant le contenu -->
+<div id="sidebar-wrap">
+    <div id="sb-backdrop" aria-hidden="true"></div>
+    <aside id="sidebar-etudiant" class="bg-white flex flex-col justify-between overflow-x-hidden overflow-y-auto">
         <div>
             <!-- Logo -->
             <div class="px-5 py-6 flex items-center space-x-3 border-b border-gray-100 whitespace-nowrap">
@@ -68,6 +133,10 @@ $menu = [
                     <h2 class="font-extrabold text-base text-gray-900 leading-tight">ESP 221</h2>
                     <p class="text-xs text-gray-400">Gestion Scolaire</p>
                 </div>
+                <button type="button" data-sb-toggle aria-label="Fermer le menu" aria-expanded="false"
+                        class="md:hidden ml-auto w-9 h-9 shrink-0 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
             </div>
 
             <!-- Navigation -->
@@ -99,19 +168,43 @@ $menu = [
 </div>
 
 <script>
-    // Appareils tactiles (pas de survol) : 1er appui = ouvre le menu, 2e appui sur un lien = navigue
+    // Menu latéral : ouverture / fermeture
     (function () {
-        var sb = document.getElementById('sidebar-etudiant');
-        if (!sb) return;
+        var wrap = document.getElementById('sidebar-wrap');
+        if (!wrap) return;
+        var large = window.matchMedia('(min-width: 768px)');
         var tactile = window.matchMedia('(hover: none)');
-        sb.addEventListener('click', function (e) {
-            if (tactile.matches && !sb.classList.contains('sb-open')) {
-                e.preventDefault();
-                sb.classList.add('sb-open');
+
+        function majAria(ouvert) {
+            var boutons = document.querySelectorAll('[data-sb-toggle]');
+            for (var i = 0; i < boutons.length; i++) {
+                boutons[i].setAttribute('aria-expanded', ouvert ? 'true' : 'false');
             }
-        });
+        }
+        function ouvrir() { wrap.classList.add('sb-open'); majAria(true); }
+        function fermer() { wrap.classList.remove('sb-open'); majAria(false); }
+
         document.addEventListener('click', function (e) {
-            if (!sb.contains(e.target)) sb.classList.remove('sb-open');
+            // Bouton ☰ (dans le header) ou ✕ (dans le menu) : ouvre / ferme
+            if (e.target.closest('[data-sb-toggle]')) {
+                if (wrap.classList.contains('sb-open')) { fermer(); } else { ouvrir(); }
+                return;
+            }
+            // Tablette tactile (>= 768px sans survol) : 1er appui = ouvre, 2e appui sur un lien = navigue
+            if (large.matches && tactile.matches && wrap.contains(e.target) && !wrap.classList.contains('sb-open')) {
+                e.preventDefault();
+                ouvrir();
+                return;
+            }
+            // Clic sur le fond sombre ou en dehors du menu : on le referme
+            if (!wrap.contains(e.target) || e.target.id === 'sb-backdrop') fermer();
         });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') fermer();
+        });
+
+        // Changement de taille d'écran (rotation...) : on repart d'un menu fermé
+        if (large.addEventListener) large.addEventListener('change', fermer);
     })();
 </script>

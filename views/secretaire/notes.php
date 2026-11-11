@@ -239,12 +239,14 @@ try {
 
     $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $toutesLesNotes = $pdo->query("
+    // Vue "Cartes" (seule vue affichée sur mobile) : on applique aussi la recherche
+    $stmtCartes = $pdo->prepare("
         SELECT n.*, e.nom, e.prenom, e.matricule
-        FROM notes n
-        LEFT JOIN etudiants e ON n.etudiant_id = e.id
+        " . $where . "
         ORDER BY n.id DESC
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ");
+    $stmtCartes->execute($params);
+    $toutesLesNotes = $stmtCartes->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
 
@@ -293,11 +295,11 @@ foreach ($toutesLesNotes as $n) {
 
 <?php include '../../includes/sidebar_secretaire.php'; ?>
 
-<main class="flex-1 flex flex-col h-screen overflow-hidden">
+<main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
 
     <?php include '../../includes/header.php'; ?>
 
-    <div class="flex-1 p-8 overflow-y-auto space-y-6">
+    <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
 
         <?php if ($message !== ''): ?>
             <div class="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg shadow-sm">
@@ -307,9 +309,9 @@ foreach ($toutesLesNotes as $n) {
 
         <!-- BARRE D'OUTILS -->
 
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
 
-            <form id="searchForm" action="notes.php" method="GET" class="relative w-80">
+            <form id="searchForm" action="notes.php" method="GET" class="relative w-full sm:w-80">
 
                 <input
                     type="text"
@@ -330,7 +332,7 @@ foreach ($toutesLesNotes as $n) {
 
             <button onclick="openAddDrawer()"
                     type="button"
-                    class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm">
+                    class="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center space-x-2 shadow-sm justify-center shrink-0">
 
                 <span>Saisir une note</span>
                 <i class="fa-solid fa-plus text-xs"></i>
@@ -343,7 +345,7 @@ foreach ($toutesLesNotes as $n) {
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
-            <div class="flex justify-end px-4 py-3 border-b border-gray-100">
+            <div class="hidden lg:flex justify-end px-4 py-3 border-b border-gray-100">
 
                 <div class="bg-gray-100 rounded-lg p-1 flex text-xs font-medium">
 
@@ -485,7 +487,7 @@ foreach ($toutesLesNotes as $n) {
 
             <!-- VUE PAR MATIÈRE -->
 
-            <div id="view-cards" class="hidden p-6">
+            <div id="view-cards" class="hidden p-4 sm:p-6">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
 
@@ -538,7 +540,7 @@ foreach ($toutesLesNotes as $n) {
 
                                     <?php foreach ($liste as $x): ?>
 
-                                        <div class="flex items-center justify-between py-2 gap-2">
+                                        <div data-note-row class="flex items-center justify-between py-2 gap-2">
 
                                             <div class="min-w-0">
 
@@ -562,6 +564,33 @@ foreach ($toutesLesNotes as $n) {
                                                     <?= h(fmtNote($x['valeur'])) ?>/20
                                                 </span>
 
+                                                <?php
+                                                $noteJsonCard = json_encode(
+                                                    $x,
+                                                    JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+                                                );
+                                                ?>
+
+                                                <button
+                                                    type="button"
+                                                    class="p-1.5 text-slate-500 hover:text-blue-600 transition btn-edit-note"
+                                                    data-note="<?= h($noteJsonCard) ?>"
+                                                    title="Modifier">
+
+                                                    <i class="fa-solid fa-pen text-xs"></i>
+
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onclick="openDeleteModalAsync(<?= (int)$x['id'] ?>, <?= h(json_encode($x['matiere'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)) ?>, this.closest('[data-note-row]'), 'supprimer_note')"
+                                                    class="p-1.5 text-slate-500 hover:text-red-600 transition"
+                                                    title="Supprimer">
+
+                                                    <i class="fa-regular fa-trash-can text-xs"></i>
+
+                                                </button>
+
                                             </div>
 
                                         </div>
@@ -582,7 +611,7 @@ foreach ($toutesLesNotes as $n) {
 
             <!-- PAGINATION -->
 
-            <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
+            <div class="flex flex-wrap gap-3 justify-between items-center px-4 sm:px-6 py-4 border-t border-gray-100 text-xs text-slate-500">
 
                 <span>
                     <?= $debutAffichage ?>–<?= $finAffichage ?> sur <?= $totalTotal ?>
@@ -827,7 +856,7 @@ foreach ($toutesLesNotes as $n) {
 <!-- NOTIFICATIONS -->
 
 <div id="toastContainer"
-     class="fixed bottom-6 right-6 z-[60] flex flex-col space-y-3">
+     class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col space-y-3">
 </div>
 
 <script>
@@ -845,7 +874,7 @@ function showToast(message, type = 'success', onUndo = null) {
 
     const toast = document.createElement('div');
 
-    toast.className = `flex items-center justify-between gap-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 min-w-[300px]`;
+    toast.className = `flex items-center justify-between gap-4 ${bgColor} text-white px-6 py-4 rounded-2xl shadow-xl transform transition-all duration-300 translate-y-5 opacity-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[300px]`;
 
     const iconSvg = isSuccess
         ? `<i class="fa-solid fa-check text-xl"></i>`

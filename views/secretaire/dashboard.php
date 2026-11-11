@@ -115,16 +115,16 @@ $couleursAvatar = ['bg-purple-600', 'bg-amber-600', 'bg-cyan-600', 'bg-blue-600'
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
     <!-- Contenu Principal -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         
         <!-- Header Supérieur Dynamique -->
         <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
-        <div class="flex-1 p-8 overflow-y-auto space-y-6">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6">
             
             <!-- 1. Cartes statistiques -->
-            <div class="grid grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                 <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-3">
                     <div class="flex items-center space-x-2.5 text-slate-500">
                         <i class="fa-solid fa-book-open text-sm"></i>
@@ -175,9 +175,9 @@ $couleursAvatar = ['bg-purple-600', 'bg-amber-600', 'bg-cyan-600', 'bg-blue-600'
             </div>
 
             <!-- 2. Graphiques -->
-            <div class="grid grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 <!-- Effectifs par filière -->
-                <div class="col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-6">
                     <div>
                         <h3 class="font-bold text-sm text-gray-900">Effectifs par Filière</h3>
                         <p class="text-xs text-slate-500">Année académique 2024-2025</p>
@@ -245,7 +245,7 @@ $couleursAvatar = ['bg-purple-600', 'bg-amber-600', 'bg-cyan-600', 'bg-blue-600'
             </div>
 
             <!-- 3. Remplissage des classes & Derniers étudiants -->
-            <div class="grid grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                 <!-- Remplissage des classes -->
                 <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
                     <h3 class="font-bold text-sm text-gray-900">Remplissage des Classes</h3>

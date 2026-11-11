@@ -348,13 +348,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <?php include '../../includes/sidebar_secretaire.php'; ?>
 
     <!-- Contenu principal -->
-    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+    <main class="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
 
         <!-- Header -->
         <?php include '../../includes/header.php'; ?>
 
         <!-- Corps de la page -->
-        <div class="flex-1 p-8 overflow-y-auto space-y-6 max-w-5xl">
+        <div class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto space-y-6 max-w-5xl">
 
             <!-- Message de succès : entièrement vert, sans bordure -->
             <?php if (!empty($succes)): ?>
@@ -407,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <?php endif; ?>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">
@@ -496,7 +496,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                     <input type="hidden" name="action" value="modifier_annee">
 
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">
@@ -605,7 +605,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         <?php endif; ?>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">
