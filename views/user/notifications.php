@@ -33,60 +33,7 @@ try {
 <body class="bg-gray-50 flex h-screen overflow-hidden font-sans">
 
     <!-- SIDEBAR ÉTUDIANT -->
-    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col justify-between h-screen shrink-0">
-        <div>
-            <div class="p-6 flex items-center space-x-3 border-b border-gray-100">
-                <div class="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center text-white font-bold shadow-md">
-                    <i class="fa-solid fa-house text-lg"></i>
-                </div>
-                <div>
-                    <h2 class="font-extrabold text-base text-gray-900 leading-tight">ESP 221</h2>
-                    <p class="text-xs text-gray-400">Gestion Scolaire</p>
-                </div>
-            </div>
-
-            <nav class="p-4 space-y-6">
-                <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3">MON ESPACE</span>
-                    <div class="mt-2 space-y-1">
-                        <a href="dashboard.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition">
-                            <i class="fa-solid fa-border-all text-base"></i>
-                            <span>Tableau de bord</span>
-                        </a>
-                        <a href="notes.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition">
-                            <i class="fa-regular fa-square-check text-base"></i>
-                            <span>Mes notes</span>
-                        </a>
-                    </div>
-                </div>
-
-                <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3">RESSOURCES</span>
-                    <div class="mt-2 space-y-1">
-                        <a href="emploi_du_temps.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition">
-                            <i class="fa-regular fa-calendar text-base"></i>
-                            <span>Emploi du Temps</span>
-                        </a>
-                        <a href="documents.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition">
-                            <i class="fa-regular fa-file-lines text-base"></i>
-                            <span>Documents</span>
-                        </a>
-                        <a href="notifications.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-semibold bg-red-50 text-red-600 transition">
-                            <i class="fa-regular fa-bell text-base"></i>
-                            <span>Notifications</span>
-                        </a>
-                    </div>
-                </div>
-            </nav>
-        </div>
-
-        <div class="p-4 border-t border-gray-100">
-            <a href="../../logout.php" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                <span>Se déconnecter</span>
-            </a>
-        </div>
-    </aside>
+ <?php include '../../includes/sidebar_etudiant.php'; ?>
 
     <!-- CONTENU PRINCIPAL -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
