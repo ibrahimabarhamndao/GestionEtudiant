@@ -55,8 +55,47 @@ if ($user && password_verify($password, $user['password'])) {
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Connexion - ESP 221</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        /* Mobile : seule la partie droite (formulaire) s'affiche, l'icône est en haut */
+        .mobile-logo { display: none; }
+
+        @media (max-width: 768px) {
+            body.login-body { padding: 16px; }
+            .login-left-panel { display: none; }
+            .login-right-panel { flex: none; padding: 32px 24px; }
+
+            .mobile-logo {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 24px;
+            }
+            .mobile-logo-icon {
+                width: 68px;
+                height: 68px;
+                border-radius: 20px;
+                background: #e63946;
+                color: #fff;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                box-shadow: 0 8px 20px rgba(230, 57, 70, 0.3);
+            }
+            .mobile-logo-tag {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 2px;
+                color: #e63946;
+            }
+
+            .form-header { text-align: center; margin-bottom: 24px; }
+            .form-header h2 { font-size: 22px; }
+        }
+    </style>
 </head>
 <body class="login-body">
     <div class="login-container-card">
@@ -79,6 +118,17 @@ if ($user && password_verify($password, $user['password'])) {
 
         <!-- Partie Droite : Formulaire de Connexion -->
         <div class="login-right-panel">
+            <!-- Icône affichée en haut sur mobile (la partie gauche est masquée) -->
+            <div class="mobile-logo">
+                <div class="mobile-logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </div>
+                <span class="mobile-logo-tag">ESP 221</span>
+            </div>
+
             <div class="form-header">
                 <h2>Connexion</h2>
                 <p>Accédez à votre espace personnel</p>
